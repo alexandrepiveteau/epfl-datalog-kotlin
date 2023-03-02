@@ -1,9 +1,6 @@
 package io.github.alexandrepiveteau.datalog.collections.graph
 
-import kotlin.test.Test
-import kotlin.test.assertContentEquals
-import kotlin.test.assertEquals
-import kotlin.test.assertFailsWith
+import kotlin.test.*
 
 class GraphTest {
 
@@ -23,8 +20,7 @@ class GraphTest {
   @Test
   fun `duplicate edge insertion is de-duplicated`() {
     val graph = Graph {
-      val a = addVertex()
-      val b = addVertex()
+      val (a, b) = addVertices()
       addEdge(a, b)
       addEdge(a, b)
     }
@@ -51,8 +47,7 @@ class GraphTest {
   @Test
   fun `dfs with cycle of two`() {
     val graph = Graph {
-      val a = addVertex()
-      val b = addVertex()
+      val (a, b) = addVertices()
       addEdge(a, b)
       addEdge(b, a)
     }
@@ -65,10 +60,7 @@ class GraphTest {
 
   @Test
   fun `dfs with unreachable node`() {
-    val graph = Graph {
-      addVertex()
-      addVertex()
-    }
+    val graph = Graph { repeat(2) { addVertex() } }
     val visited = mutableListOf<Vertex>()
     graph.forEachVertexDFS(graph[0]) { visited.add(it) }
     assertEquals(1, visited.size)
@@ -90,11 +82,7 @@ class GraphTest {
       // 2 -> {1}
       // 3 -> {4}
       // 4 -> { }
-      val zero = addVertex()
-      val one = addVertex()
-      val two = addVertex()
-      val three = addVertex()
-      val four = addVertex()
+      val (zero, one, two, three, four) = addVertices()
 
       addEdge(zero, two)
       addEdge(zero, three)
@@ -116,5 +104,91 @@ class GraphTest {
 
     assertContentEquals(expectedAction, action.map { graph[it] }.toIntArray())
     assertContentEquals(expectedTreated, treated.map { graph[it] }.toIntArray())
+  }
+
+  @Test
+  fun `scc with zero nodes is correct`() {
+    val graph = Graph()
+    val scc = graph.scc()
+    assertEquals(0, scc.size)
+  }
+
+  @Test
+  fun `scc with one node is correct`() {
+    val graph = Graph { addVertex() }
+    val scc = graph.scc()
+
+    assertEquals(1, scc.size)
+    assertEquals(graph[0], scc[graph[0]])
+  }
+
+  @Test
+  fun `scc with many distinct nodes is correct`() {
+    val count = 100
+    val graph = Graph { repeat(count) { addVertex() } }
+    val scc = graph.scc()
+
+    assertEquals(count, scc.size)
+    repeat(count) { assertEquals(graph[it], scc[graph[it]]) }
+  }
+
+  @Test
+  fun `scc with path has one component per node`() {
+    val graph = Graph {
+      val (a, b, c) = addVertices()
+
+      addEdge(a, b)
+      addEdge(b, c)
+    }
+
+    val scc = graph.scc()
+    assertEquals(3, scc.size)
+  }
+
+  @Test
+  fun `scc with two nodes cycle has one component`() {
+    val graph = Graph {
+      val (a, b) = addVertices()
+
+      addEdge(a, b)
+      addEdge(b, a)
+    }
+
+    val scc = graph.scc()
+    assertEquals(1, scc.values.toSet().size)
+    assertEquals(scc[graph[1]], scc[graph[0]])
+  }
+
+  @Test
+  fun `scc with three nodes cycle has one component`() {
+    val graph = Graph {
+      val (a, b, c) = addVertices()
+      addEdge(a, b)
+      addEdge(b, c)
+      addEdge(c, a)
+    }
+
+    val scc = graph.scc()
+    assertEquals(1, scc.values.toSet().size)
+    assertEquals(scc[graph[1]], scc[graph[0]])
+    assertEquals(scc[graph[2]], scc[graph[0]])
+  }
+
+  @Test
+  fun `scc with two cycles has two components`() {
+    val graph = Graph {
+      val (a, b, c, d) = addVertices()
+      addEdge(a, b)
+      addEdge(b, a)
+
+      addEdge(c, d)
+      addEdge(d, c)
+    }
+
+    val scc = graph.scc()
+    assertEquals(2, scc.values.toSet().size)
+    assertEquals(scc[graph[1]], scc[graph[0]])
+    assertEquals(scc[graph[3]], scc[graph[2]])
+    assertNotEquals(scc[graph[1]], scc[graph[2]])
   }
 }

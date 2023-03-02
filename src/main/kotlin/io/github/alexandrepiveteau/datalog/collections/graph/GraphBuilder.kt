@@ -11,6 +11,9 @@ interface GraphBuilder {
   /** Adds a new vertex to the graph, and returns it. */
   fun addVertex(): Vertex
 
+  /** Returns a new [Vertices] instance. */
+  fun addVertices(): Vertices = Vertices { addVertex() }
+
   /**
    * Adds a new edge to the graph.
    *
@@ -25,6 +28,20 @@ interface GraphBuilder {
    * @param to the target vertex of the edge.
    */
   fun addEdge(from: Vertex, to: Vertex)
+}
+
+/** A [Vertices] is a helper class which allows to create multiple [Vertex]s at once. */
+fun interface Vertices {
+  operator fun invoke(): Vertex
+  operator fun component1(): Vertex = invoke()
+  operator fun component2(): Vertex = invoke()
+  operator fun component3(): Vertex = invoke()
+  operator fun component4(): Vertex = invoke()
+  operator fun component5(): Vertex = invoke()
+  operator fun component6(): Vertex = invoke()
+  operator fun component7(): Vertex = invoke()
+  operator fun component8(): Vertex = invoke()
+  operator fun component9(): Vertex = invoke()
 }
 
 /** Creates a new [Graph] from the given [builder]. */

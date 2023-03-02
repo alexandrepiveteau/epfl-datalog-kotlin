@@ -100,3 +100,48 @@ fun Graph.forEachVertexDFS(
     }
   }
 }
+
+/**
+ * Returns the strongly connected components of this graph. A strongly connected component is a
+ * maximal set of vertices such that there is a path between any two vertices in the set.
+ *
+ * This algorithm is based on the Kosaraju algorithm.
+ *
+ * @return a map associating each vertex to its strongly connected component, which is a [Vertex]
+ *   from the same component.
+ */
+fun Graph.scc(): Map<Vertex, Vertex> {
+  // Obtain the order of the vertices to visit.
+  val order = ArrayDeque<Vertex>()
+  val missing = mutableSetOf<Vertex>().apply { forEachVertex { add(it) } }
+  while (missing.isNotEmpty()) {
+    val vertex = missing.first()
+    forEachVertexDFS(
+        from = vertex,
+        treated = {
+          if (it in missing) {
+            missing.remove(it)
+            order.add(it)
+          }
+        },
+    )
+  }
+
+  // Compute the transpose of the graph.
+  val transpose = transposed()
+
+  // Compute the strongly connected components.
+  val scc = mutableMapOf<Vertex, Vertex>()
+  while (order.isNotEmpty()) {
+    val vertex = order.removeFirst()
+    if (vertex !in scc) {
+      transpose.forEachVertexDFS(vertex) {
+        if (it !in scc) {
+          scc[it] = vertex
+        }
+      }
+    }
+  }
+
+  return scc
+}
