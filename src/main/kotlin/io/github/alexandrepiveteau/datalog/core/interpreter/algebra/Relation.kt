@@ -50,13 +50,26 @@ internal fun Relation.Companion.domain(arity: Int, values: Sequence<Atom>): Rela
 /** Iterates over all the rows in the relation, applying [f] to each of them. */
 internal inline fun Relation.forEach(f: (AtomList) -> Unit) = tuples.forEach(f)
 
+/** Returns the value of the [Column] in the [AtomList]. */
+private fun AtomList.value(column: Column): Atom =
+    when (column) {
+      is Column.Constant -> column.value
+      is Column.Index -> this[column.index]
+    }
+
 /**
  * Performs a selection on the relation, and returns the result. The arity of the resulting relation
  * is the same as the arity of the original relation.
  */
-internal fun Relation.select(
-    f: (AtomList) -> Boolean,
-): Relation = buildRelation(arity) { forEach { if (f(it)) yield(it) } }
+internal fun Relation.select(selection: Set<Set<Column>>): Relation {
+  val list = selection.map { it.toList() }
+  return buildRelation(arity) {
+    forEach { row ->
+      val insert = list.all { g -> g.all { c -> row.value(c) == row.value(g.first()) } }
+      if (insert) yield(row)
+    }
+  }
+}
 
 /**
  * Performs a natural join between this relation and [other], and returns the result. The arity of

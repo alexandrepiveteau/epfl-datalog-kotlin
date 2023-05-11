@@ -22,18 +22,18 @@ fun main() {
         val (x, y, z) = variables()
 
         // Set up the EDB
-        r(1, 2) += empty
-        r(2, 3) += empty
-        r(3, 4) += empty
-        r(4, 5) += empty
-        r(5, 1) += empty
+        val max = 40
+        for (i in 1..max) {
+          r(i, i + 1) += empty
+        }
+        r(max + 1, 1) += empty
 
         // P1
         v(x) += r(x, y)
         v(y) += r(x, y)
         // P2
         t(x, y) += r(x, y)
-        t(x, y) += t(x, z) + r(z, y) + r(1.asValue(), x)
+        t(x, y) += t(x, z) + r(z, y)
         // P3
         tc(x, y) += v(x) + v(y) + !t(x, y)
 

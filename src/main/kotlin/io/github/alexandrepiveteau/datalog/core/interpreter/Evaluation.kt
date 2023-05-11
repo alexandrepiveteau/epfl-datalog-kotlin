@@ -3,6 +3,8 @@ package io.github.alexandrepiveteau.datalog.core.interpreter
 import io.github.alexandrepiveteau.datalog.core.*
 import io.github.alexandrepiveteau.datalog.core.Relation as CoreRelation
 import io.github.alexandrepiveteau.datalog.core.interpreter.algebra.*
+import io.github.alexandrepiveteau.datalog.core.interpreter.algebra.Column.Constant
+import io.github.alexandrepiveteau.datalog.core.interpreter.algebra.Column.Index
 import io.github.alexandrepiveteau.datalog.core.interpreter.algebra.Relation
 import io.github.alexandrepiveteau.datalog.core.interpreter.algebra.empty
 import io.github.alexandrepiveteau.graphs.Vertex
@@ -43,9 +45,22 @@ private fun projection(predicate: AtomList, rule: AtomList): List<Column> {
   return predicate.map { atom ->
     if (atom.isVariable) {
       val index = rule.toList().indexOfFirst { atom == it }
-      Column.Index(index)
+      Index(index)
     } else {
-      Column.Constant(atom)
+      Constant(atom)
+    }
+  }
+}
+
+/** Returns the [Set] of [Set] of [Column] that should be used for equality selection. */
+private fun selection(rule: AtomList): Set<Set<Column>> {
+  return buildSet {
+    val constants = constantIndices(rule)
+    for (variable in variableIndices(rule)) {
+      add(variable.mapTo(mutableSetOf()) { Index(it) })
+    }
+    for (constant in constants) {
+      add(setOf(Constant(rule[constant]), Index(constant)))
     }
   }
 }
@@ -77,33 +92,10 @@ private fun Context.evalRule(rule: Rule, edb: EDB): Relation {
         relation
       }
   val concat = rule.clauses.flatMap { it.atoms.toList() }.asAtomList()
-  val variables = variableIndices(concat)
-  val constants = constantIndices(concat)
   val projection = projection(rule.atoms, concat)
 
   // Join, then filter, then project.
-  var result = relations.join()
-
-  // Filter the variable indices.
-  result =
-      result.select {
-        for (indices in variables) {
-          indices.zipWithNext().forEach { (a, b) -> if (it[a] != it[b]) return@select false }
-        }
-        return@select true
-      }
-
-  // Filter the constants.
-  result =
-      result.select {
-        for (index in constants) {
-          if (it[index] != concat[index]) return@select false
-        }
-        return@select true
-      }
-
-  // Project the columns.
-  return result.project(projection)
+  return relations.join().select(selection(concat)).project(projection)
 }
 
 /**
