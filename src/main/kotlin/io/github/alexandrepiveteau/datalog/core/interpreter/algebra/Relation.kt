@@ -36,6 +36,17 @@ internal fun Relation.Companion.empty(arity: Int): Relation {
   return Relation(arity, emptySet())
 }
 
+/**
+ * Returns a [Relation] with [arity] columns, which contains all value combinations from the given
+ * domain [values]s.
+ */
+internal fun Relation.Companion.domain(arity: Int, values: Sequence<Atom>): Relation {
+  val column = buildRelation(1) { for (value in values) yield(arrayOf(value).asAtomList()) }
+  var result = if (arity == 0) return empty(0) else column
+  for (i in 1 until arity) result = result.join(column)
+  return result
+}
+
 /** Iterates over all the rows in the relation, applying [f] to each of them. */
 internal inline fun Relation.forEach(f: (AtomList) -> Unit) = tuples.forEach(f)
 
@@ -93,6 +104,15 @@ internal fun Relation.distinct(): Relation {
     val seen = mutableSetOf<AtomList>()
     forEach { if (seen.add(it)) yield(it) }
   }
+}
+
+/**
+ * Subtracts [other] from this relation, and returns the result. The arity of the resulting relation
+ * is the same as the arity of both relations.
+ */
+internal operator fun Relation.minus(other: Relation): Relation {
+  require(other.arity == arity) { "The arity of the relations must be the same." }
+  return buildRelation(arity) { forEach { if (it !in other.tuples) yield(it) } }
 }
 
 /**

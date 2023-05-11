@@ -63,14 +63,19 @@ internal typealias IDB = Map<CoreRelation, Set<Rule>>
  * @param rule the [Rule] to evaluate.
  * @param edb the [EDB] to evaluate the rule against.
  */
-private fun evalRule(rule: Rule, edb: EDB): Relation {
+private fun Context.evalRule(rule: Rule, edb: EDB): Relation {
   // 1. Find all the variables in the rule, and their indices.
   // 2. Find all the constants in the rule.
   // 3. Generate all the selection clauses.
   // 4. Perform the join and apply the selection clauses.
   // 5. Perform a projection to remap the indices.
 
-  val relations = rule.clauses.map { edb[it.relation] ?: Relation.empty(it.atoms.size) }
+  val relations =
+      rule.clauses.map {
+        var relation = edb[it.relation] ?: Relation.empty(it.atoms.size)
+        if (it.negated) relation = Relation.domain(relation.arity, domain) - relation
+        relation
+      }
   val concat = rule.clauses.flatMap { it.atoms.toList() }.asAtomList()
   val variables = variableIndices(concat)
   val constants = constantIndices(concat)
@@ -112,7 +117,7 @@ private fun evalRule(rule: Rule, edb: EDB): Relation {
  * @param idb the [IDB] to evaluate the rule against.
  * @param edb the [EDB] to evaluate the rule against.
  */
-private fun eval(predicate: CoreRelation, idb: IDB, edb: EDB): Relation {
+private fun Context.eval(predicate: CoreRelation, idb: IDB, edb: EDB): Relation {
   val rules = idb[predicate] ?: error("No rules for $predicate")
   var result = Relation.empty(rules.first().atoms.size)
   for (rule in rules) {
@@ -134,7 +139,7 @@ private operator fun EDB.plus(other: EDB): EDB = buildMap {
  * [naiveEval] takes a list of [Rule]s as an intentional database, and evaluates them against a list
  * of facts to produce a new set of facts.
  */
-internal fun naiveEval(idb: IDB, edb: EDB): EDB {
+internal fun Context.naiveEval(idb: IDB, edb: EDB): EDB {
   val relations =
       idb.mapValuesTo(mutableMapOf()) { (_, rules) ->
         val arity = rules.first().atoms.size
@@ -165,7 +170,7 @@ internal fun naiveEval(idb: IDB, edb: EDB): EDB {
  * @param evalStrata the evaluator to use for each stratum.
  * @return the resulting [EDB].
  */
-internal fun stratifiedEval(
+internal fun Context.stratifiedEval(
     idb: IDB,
     edb: EDB,
     evalStrata: (IDB, EDB) -> EDB,
@@ -209,7 +214,6 @@ internal fun stratifiedEval(
   var result = edb
   for (stratum in order) {
     val rules = idb.filterKeys { it in stratum }
-
     result = evalStrata(rules, result)
   }
   return result

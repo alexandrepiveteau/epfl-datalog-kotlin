@@ -31,9 +31,11 @@ internal class DatalogProgram : ProgramBuilder, Program {
 
   override fun build(): Program = this
 
+  private fun context() = Context(sequence { for (i in 0 until nextConstant) yield(Atom(i)) })
+
   override fun solve(relation: CoreRelation): Iterable<Fact> {
     val (idb, edb) = partition(rules)
-    val result = stratifiedEval(idb, edb, ::naiveEval)
+    val result = with(context()) { stratifiedEval(idb, edb, ::naiveEval) }
     val facts = result[relation] ?: return emptyList()
     return facts.mapToFacts(relation).asIterable()
   }
