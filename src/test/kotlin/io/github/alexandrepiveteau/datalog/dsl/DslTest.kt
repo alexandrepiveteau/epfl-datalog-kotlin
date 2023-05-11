@@ -63,6 +63,38 @@ class DslTest {
     }
     assertEquals(setOf(listOf(1, 2), listOf(1, 3), listOf(2, 3)), solution)
   }
+
+  @Test
+  fun `transitive closure complex`() {
+    val solution = program {
+      val (e, tc, r) = relations()
+      val (x, y, z) = variables()
+
+      e(1, 2) += empty
+      e(2, 3) += empty
+      e(3, 4) += empty
+      e(4, 5) += empty
+      e(5, 6) += empty
+      e(6, 1) += empty
+
+      tc(x, y) += e(x, y)
+      tc(x, y) += tc(x, z) + e(z, y)
+
+      r(x) += tc(1.asValue(), x)
+      r
+    }
+    assertEquals(
+        setOf(
+            listOf(1),
+            listOf(2),
+            listOf(3),
+            listOf(4),
+            listOf(5),
+            listOf(6),
+        ),
+        solution,
+    )
+  }
 }
 
 /**
