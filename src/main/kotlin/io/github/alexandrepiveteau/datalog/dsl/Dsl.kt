@@ -39,6 +39,10 @@ private class Translation<K, V>(private val generator: () -> V) {
 private class Datalog<T> : DatalogScope<T> {
   private val builder = CoreProgramBuilder()
   private val translation = Translation<T, CoreAtom>(builder::constant)
+
+  override fun constants(vararg values: T) {
+    for (constant in values) translation.getValue(constant)
+  }
   override fun variable() = Variable<T>(builder.variable())
   override fun relation() = Relation<T>(builder.relation())
 

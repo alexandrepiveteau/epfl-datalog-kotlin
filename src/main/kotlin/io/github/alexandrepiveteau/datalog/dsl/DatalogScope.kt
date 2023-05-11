@@ -17,6 +17,9 @@ interface DatalogScope<T> {
   val empty: Terms<Nothing>
     get() = Terms(emptySet())
 
+  /** Registers the set of constants in the [DatalogScope]. */
+  fun constants(vararg values: T)
+
   /** Returns a new [Variable] which is guaranteed to be unique within this [DatalogScope]. */
   fun variable(): Variable<T>
 
