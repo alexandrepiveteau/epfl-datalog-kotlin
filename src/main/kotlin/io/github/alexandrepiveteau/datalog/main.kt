@@ -1,6 +1,7 @@
 package io.github.alexandrepiveteau.datalog
 
 import io.github.alexandrepiveteau.datalog.dsl.Term
+import io.github.alexandrepiveteau.datalog.dsl.Value
 import io.github.alexandrepiveteau.datalog.dsl.datalog
 
 /** Returns a [Sequence] of the standard input text. */
@@ -39,5 +40,8 @@ fun main() {
         solve(tc)
       }
 
-  println(solution)
+  solution
+      .map { term -> term.atoms }
+      .map { (f, t) -> f as Value<Int> to t as Value<Int> }
+      .forEach { (f, t) -> println("${f.value} -> ${t.value}") }
 }
