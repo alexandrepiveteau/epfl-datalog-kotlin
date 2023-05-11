@@ -8,5 +8,5 @@ repositories { mavenCentral() }
 dependencies {
   implementation(kotlin("stdlib"))
   testImplementation(kotlin("test"))
-  implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.6.4")
+  implementation("io.github.alexandrepiveteau:kotlin-graphs:0.5.0")
 }

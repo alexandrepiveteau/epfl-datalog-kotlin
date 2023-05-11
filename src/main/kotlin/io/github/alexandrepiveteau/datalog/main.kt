@@ -20,16 +20,22 @@ fun main() {
         val (r, v, t, tc) = relations()
         val (x, y, z) = variables()
 
+        // Set up the EDB
+        r(1, 2) += empty
+        r(2, 3) += empty
+        r(3, 4) += empty
+        r(4, 5) += empty
+        r(5, 1) += empty
+
         // P1
         v(x) += r(x, y)
         v(y) += r(x, y)
         // P2
         t(x, y) += r(x, y)
-        t(x, y) += t(x, z) + r(z, y)
+        t(x, y) += t(x, z) + r(z, y) + r(1.asValue(), x)
         // P3
         tc(x, y) += v(x) + v(y) + !t(x, y)
 
-        // Set up the EDB
         solve(tc)
       }
 
