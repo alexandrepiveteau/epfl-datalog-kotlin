@@ -35,6 +35,34 @@ class DslTest {
     }
     assertEquals(setOf(listOf(1), listOf(3)), solution)
   }
+
+  @Test
+  fun `simple derivation yields fact`() {
+    val solution = program {
+      val (a, b) = relations()
+      val (x) = variables()
+      a(1) += empty
+      b(x) += a(x)
+      b
+    }
+    assertEquals(setOf(listOf(1)), solution)
+  }
+
+  @Test
+  fun `transitive closure`() {
+    val solution = program {
+      val (e, tc) = relations()
+      val (x, y, z) = variables()
+
+      e(1, 2) += empty
+      e(2, 3) += empty
+
+      tc(x, y) += e(x, y)
+      tc(x, y) += tc(x, z) + e(z, y)
+      tc
+    }
+    assertEquals(setOf(listOf(1, 2), listOf(1, 3), listOf(2, 3)), solution)
+  }
 }
 
 /**

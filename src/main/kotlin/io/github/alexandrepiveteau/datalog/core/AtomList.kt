@@ -37,7 +37,22 @@ fun List<Atom>.asAtomList(): AtomList {
     override fun get(index: Int): Atom = this@asAtomList[index]
 
     override fun toString(): String {
-      return joinToString()
+      return joinToString(prefix = "[", postfix = "]")
+    }
+
+    override fun hashCode(): Int {
+      var result = 1
+      result = 31 * result + size
+      forEach { result = 31 * result + it.hashCode() }
+      return result
+    }
+
+    override fun equals(other: Any?): Boolean {
+      if (other === this) return true
+      if (other !is AtomList) return false
+      if (other.size != size) return false
+      for (i in 0 until size) if (other[i] != this[i]) return false
+      return true
     }
   }
 }

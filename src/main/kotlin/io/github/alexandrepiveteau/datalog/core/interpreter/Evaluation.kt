@@ -36,8 +36,9 @@ private fun projection(predicate: AtomList, rule: AtomList): List<Column> {
     if (atom.isVariable) {
       val index = rule.toList().indexOfFirst { atom == it }
       Column.Index(index)
+    } else {
+      Column.Constant(atom)
     }
-    Column.Constant(atom)
   }
 }
 
@@ -114,7 +115,7 @@ private fun eval(predicate: CoreRelation, idb: IDB, edb: EDB): Relation {
 
 /** Performs the union between two [EDB]. */
 private operator fun EDB.plus(other: EDB): EDB = buildMap {
-  forEach { (id, rel) ->
+  this@plus.forEach { (id, rel) ->
     val o = other[id] ?: Relation.empty(rel.arity)
     put(id, rel.union(o))
   }

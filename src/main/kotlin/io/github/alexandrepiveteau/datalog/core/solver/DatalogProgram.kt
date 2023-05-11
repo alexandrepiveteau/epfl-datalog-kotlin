@@ -50,8 +50,6 @@ private fun partition(rules: Collection<Rule>): Pair<IDB, EDB> {
     }
   }
 
-  println("EDB has size ${edbBuilder.size}")
-
   val edb =
       edbBuilder.mapValues { (_, atoms) ->
         val arity = atoms.first().size
@@ -61,11 +59,6 @@ private fun partition(rules: Collection<Rule>): Pair<IDB, EDB> {
   return idbBuilder to edb
 }
 
-private fun Relation.mapToFacts(relation: CoreRelation): Sequence<Fact> = sequence {
-  val iterator = iterator()
-  while (iterator.hasNext()) {
-    val next = iterator.next()
-    val fact = Fact(relation, next)
-    yield(fact)
-  }
-}
+private fun Relation.mapToFacts(
+    relation: CoreRelation,
+): Sequence<Fact> = sequence { tuples.forEach { yield(Fact(relation, it)) } }

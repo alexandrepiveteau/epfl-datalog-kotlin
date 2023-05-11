@@ -6,18 +6,14 @@ import io.github.alexandrepiveteau.datalog.core.asAtomList
 import io.github.alexandrepiveteau.datalog.core.plus
 
 /**
- * An interface representing a [Relation], which contains a set of rows as [AtomList]s, and has a
- * certain arity.
+ * A [Relation] contains a set of tuples as [AtomList]s and has a certain arity.
+ *
+ * @property arity the number of atoms in each row of the relation.
+ * @property tuples the sequence of [AtomList]s in the relation.
  *
  * TODO : Perform operations using a block-iterator-based model.
  */
-abstract class Relation {
-
-  /** Returns the number of atoms in each row of the relation. */
-  abstract val arity: Int
-
-  /** Returns an [Iterator] which can be used to traverse the [Relation]. */
-  abstract fun iterator(): Iterator<AtomList>
+data class Relation(val arity: Int, val tuples: Set<AtomList>) {
 
   override fun toString(): String = buildString {
     append("Relation(arity=")
@@ -37,17 +33,11 @@ abstract class Relation {
 
 /** Returns an empty [Relation] of the given arity. The resulting relation will have no rows. */
 fun Relation.Companion.empty(arity: Int): Relation {
-  return object : Relation() {
-    override val arity: Int = arity
-    override fun iterator(): Iterator<AtomList> = emptyList<AtomList>().iterator()
-  }
+  return Relation(arity, emptySet())
 }
 
 /** Iterates over all the rows in the relation, applying [f] to each of them. */
-inline fun Relation.forEach(f: (AtomList) -> Unit) {
-  val iterator = iterator()
-  while (iterator.hasNext()) f(iterator.next())
-}
+inline fun Relation.forEach(f: (AtomList) -> Unit) = tuples.forEach(f)
 
 /**
  * Performs a selection on the relation, and returns the result. The arity of the resulting relation
@@ -105,20 +95,24 @@ fun Relation.distinct(): Relation {
   }
 }
 
-/** Returns true if the two [Relation] contain the same values, using bag semantics. */
-fun Relation.same(other: Relation): Boolean {
-  val a = iterator().asSequence().toSet()
-  val b = other.iterator().asSequence().toSet()
-  return a == b
-}
-
-// TODO : Document this.
+/**
+ * The kind of outputs which are possible for a [Relation] projection.
+ *
+ * @see Relation.project
+ */
 sealed interface Column {
+
+  /** Projects a constant value for all rows. */
   data class Constant(val value: Atom) : Column
+
+  /** Projects a value from the row at the given index. */
   data class Index(val index: Int) : Column
 }
 
-// TODO : Document this.
+/**
+ * Applies the given [projection] to the relation, and returns the result. The arity of the
+ * resulting relation is the same as the number of columns in the projection.
+ */
 fun Relation.project(projection: List<Column>): Relation {
   return buildRelation(projection.size) {
     forEach { atom ->
@@ -130,7 +124,8 @@ fun Relation.project(projection: List<Column>): Relation {
                   is Column.Index -> atom[it.index]
                 }
               }
-              .asAtomList())
+              .asAtomList(),
+      )
     }
   }
 }
@@ -146,10 +141,4 @@ fun Relation.project(projection: List<Column>): Relation {
 fun buildRelation(
     arity: Int,
     builder: suspend SequenceScope<AtomList>.() -> Unit,
-): Relation {
-  val sequence = sequence { builder() }
-  return object : Relation() {
-    override val arity = arity
-    override fun iterator() = sequence.iterator()
-  }
-}
+): Relation = Relation(arity, sequence { builder() }.toSet())

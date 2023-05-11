@@ -14,6 +14,6 @@ value class Atom internal constructor(internal val backing: Int) {
 
   override fun toString(): String {
     if (isConstant) return "c${backing}"
-    return "v${backing}"
+    return "v${-backing-1}"
   }
 }
