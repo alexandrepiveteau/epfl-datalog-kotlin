@@ -1,4 +1,4 @@
-package io.github.alexandrepiveteau.datalog.core.algebra
+package io.github.alexandrepiveteau.datalog.core.interpreter.algebra
 
 import io.github.alexandrepiveteau.datalog.core.Atom
 import io.github.alexandrepiveteau.datalog.core.AtomList
@@ -13,7 +13,7 @@ import io.github.alexandrepiveteau.datalog.core.plus
  *
  * TODO : Perform operations using a block-iterator-based model.
  */
-data class Relation(val arity: Int, val tuples: Set<AtomList>) {
+internal data class Relation(val arity: Int, val tuples: Set<AtomList>) {
 
   override fun toString(): String = buildString {
     append("Relation(arity=")
@@ -32,18 +32,18 @@ data class Relation(val arity: Int, val tuples: Set<AtomList>) {
 }
 
 /** Returns an empty [Relation] of the given arity. The resulting relation will have no rows. */
-fun Relation.Companion.empty(arity: Int): Relation {
+internal fun Relation.Companion.empty(arity: Int): Relation {
   return Relation(arity, emptySet())
 }
 
 /** Iterates over all the rows in the relation, applying [f] to each of them. */
-inline fun Relation.forEach(f: (AtomList) -> Unit) = tuples.forEach(f)
+internal inline fun Relation.forEach(f: (AtomList) -> Unit) = tuples.forEach(f)
 
 /**
  * Performs a selection on the relation, and returns the result. The arity of the resulting relation
  * is the same as the arity of the original relation.
  */
-fun Relation.select(
+internal fun Relation.select(
     f: (AtomList) -> Boolean,
 ): Relation = buildRelation(arity) { forEach { if (f(it)) yield(it) } }
 
@@ -51,7 +51,7 @@ fun Relation.select(
  * Performs a natural join between this relation and [other], and returns the result. The arity of
  * the resulting relation is the sum of the arity of both relations.
  */
-fun Relation.join(other: Relation): Relation {
+internal fun Relation.join(other: Relation): Relation {
   return buildRelation(arity + other.arity) { forEach { a -> other.forEach { b -> yield(a + b) } } }
 }
 
@@ -59,14 +59,14 @@ fun Relation.join(other: Relation): Relation {
  * Performs a natural join between this [Relation] and all the [others], and returns the result. The
  * arity of the resulting relation is the sum of the arity of all relations.
  */
-fun Relation.join(others: Iterable<Relation>): Relation {
+internal fun Relation.join(others: Iterable<Relation>): Relation {
   var result = this
   for (other in others) result = result.join(other)
   return result
 }
 
 /** @see Relation.join */
-fun Iterable<Relation>.join(): Relation {
+internal fun Iterable<Relation>.join(): Relation {
   val iterator = iterator().apply { require(hasNext()) { "The iterable must not be empty." } }
   var result = iterator.next()
   while (iterator.hasNext()) {
@@ -79,7 +79,7 @@ fun Iterable<Relation>.join(): Relation {
  * Performs a union between this relation and [other], and returns the result. The arity of the
  * resulting relation is the same as the arity of both relations.
  */
-fun Relation.union(other: Relation): Relation {
+internal fun Relation.union(other: Relation): Relation {
   require(other.arity == arity) { "The arity of the relations must be the same." }
   return buildRelation(arity) {
     forEach { yield(it) }
@@ -88,7 +88,7 @@ fun Relation.union(other: Relation): Relation {
 }
 
 /** Filters duplicate rows in the relation, and returns the result. */
-fun Relation.distinct(): Relation {
+internal fun Relation.distinct(): Relation {
   return buildRelation(arity) {
     val seen = mutableSetOf<AtomList>()
     forEach { if (seen.add(it)) yield(it) }
@@ -100,7 +100,7 @@ fun Relation.distinct(): Relation {
  *
  * @see Relation.project
  */
-sealed interface Column {
+internal sealed interface Column {
 
   /** Projects a constant value for all rows. */
   data class Constant(val value: Atom) : Column
@@ -113,7 +113,7 @@ sealed interface Column {
  * Applies the given [projection] to the relation, and returns the result. The arity of the
  * resulting relation is the same as the number of columns in the projection.
  */
-fun Relation.project(projection: List<Column>): Relation {
+internal fun Relation.project(projection: List<Column>): Relation {
   return buildRelation(projection.size) {
     forEach { atom ->
       yield(
@@ -138,7 +138,7 @@ fun Relation.project(projection: List<Column>): Relation {
  * @param builder the suspending function that can be used to yield new [AtomList]s.
  * @return a new [Relation] with the given [arity], and the given [builder] function.
  */
-fun buildRelation(
+internal fun buildRelation(
     arity: Int,
     builder: suspend SequenceScope<AtomList>.() -> Unit,
 ): Relation = Relation(arity, sequence { builder() }.toSet())

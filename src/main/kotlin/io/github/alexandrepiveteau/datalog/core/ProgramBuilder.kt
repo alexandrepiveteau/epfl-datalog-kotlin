@@ -1,6 +1,6 @@
 package io.github.alexandrepiveteau.datalog.core
 
-import io.github.alexandrepiveteau.datalog.core.solver.DatalogProgram
+import io.github.alexandrepiveteau.datalog.core.interpreter.DatalogProgram
 
 /**
  * A [ProgramBuilder] is a mutable builder for [Program] instances. It is used to build a [Program]
@@ -45,4 +45,7 @@ interface ProgramBuilder {
   fun build(): Program
 }
 
+/**
+ * Returns a [ProgramBuilder], which can be used to build a [Program] and obtain results from it.
+ */
 fun ProgramBuilder(): ProgramBuilder = DatalogProgram()

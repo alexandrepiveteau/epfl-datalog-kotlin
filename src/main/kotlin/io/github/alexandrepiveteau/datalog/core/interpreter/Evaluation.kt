@@ -2,8 +2,16 @@ package io.github.alexandrepiveteau.datalog.core.interpreter
 
 import io.github.alexandrepiveteau.datalog.core.*
 import io.github.alexandrepiveteau.datalog.core.Relation as CoreRelation
-import io.github.alexandrepiveteau.datalog.core.algebra.*
-import io.github.alexandrepiveteau.datalog.core.solver.Rule
+import io.github.alexandrepiveteau.datalog.core.interpreter.algebra.*
+import io.github.alexandrepiveteau.datalog.core.interpreter.algebra.Relation
+import io.github.alexandrepiveteau.datalog.core.interpreter.algebra.empty
+import io.github.alexandrepiveteau.graphs.Vertex
+import io.github.alexandrepiveteau.graphs.algorithms.stronglyConnectedComponentsKosaraju
+import io.github.alexandrepiveteau.graphs.algorithms.topologicalSort
+import io.github.alexandrepiveteau.graphs.arcTo
+import io.github.alexandrepiveteau.graphs.builder.buildDirectedGraph
+import io.github.alexandrepiveteau.graphs.forEach
+import io.github.alexandrepiveteau.graphs.toTypedArray
 
 /**
  * Returns the [Set] of all the indices of the variables in the [Rule]. This is used to generate the
@@ -43,10 +51,10 @@ private fun projection(predicate: AtomList, rule: AtomList): List<Column> {
 }
 
 /** The extensional database is the set of facts that have already been derived. */
-typealias EDB = Map<CoreRelation, Relation>
+internal typealias EDB = Map<CoreRelation, Relation>
 
 /** The intentional database is the set of rules that may be used to derive new facts. */
-typealias IDB = Map<CoreRelation, Set<Rule>>
+internal typealias IDB = Map<CoreRelation, Set<Rule>>
 
 /**
  * [evalRule] takes one [Rule], and evaluates it against a list of [Relation]s, returning the values
@@ -126,7 +134,7 @@ private operator fun EDB.plus(other: EDB): EDB = buildMap {
  * [naiveEval] takes a list of [Rule]s as an intentional database, and evaluates them against a list
  * of facts to produce a new set of facts.
  */
-fun naiveEval(idb: IDB, edb: EDB): EDB {
+internal fun naiveEval(idb: IDB, edb: EDB): EDB {
   val relations =
       idb.mapValuesTo(mutableMapOf()) { (_, rules) ->
         val arity = rules.first().atoms.size
@@ -147,4 +155,62 @@ fun naiveEval(idb: IDB, edb: EDB): EDB {
   } while (relations != updated)
 
   return relations + edb
+}
+
+/**
+ * [stratifiedEval] performs stratified evaluation of the rules, and returns the resulting [EDB].
+ *
+ * @param idb the [IDB] to evaluate.
+ * @param edb the [EDB] to evaluate.
+ * @param evalStrata the evaluator to use for each stratum.
+ * @return the resulting [EDB].
+ */
+internal fun stratifiedEval(
+    idb: IDB,
+    edb: EDB,
+    evalStrata: (IDB, EDB) -> EDB,
+): EDB {
+  // 1. Compute the different strata using the rules.
+  // 2. Use a topological sort to order the strata for evaluation.
+  // 3. Evaluate each stratum using the evalStrata evaluator.
+  // 4. Return the union of all the strata.
+  val rulesToVertices = mutableMapOf<CoreRelation, Vertex>()
+  val verticesToRules = mutableMapOf<Vertex, CoreRelation>()
+  val graph = buildDirectedGraph {
+    for ((id, _) in idb) {
+      val vertex = addVertex()
+      rulesToVertices[id] = vertex
+      verticesToRules[vertex] = id
+    }
+    for ((_, rules) in idb) {
+      for (rule in rules) {
+        for (clause in rule.clauses) {
+          if (clause.relation in idb) {
+            val from = rulesToVertices[clause.relation] ?: error("No vertex for ${clause.relation}")
+            val to = rulesToVertices[rule.relation] ?: error("No vertex for ${rule.relation}")
+            addArc(from arcTo to)
+          }
+        }
+      }
+    }
+  }
+  val (scc, map) = graph.stronglyConnectedComponentsKosaraju()
+  val strata = mutableMapOf<Vertex, MutableSet<CoreRelation>>()
+
+  map.forEach { v, component ->
+    val stratum = strata.getOrPut(component) { mutableSetOf() }
+    stratum.add(verticesToRules[v] ?: error("No rule for $v"))
+  }
+
+  val order =
+      scc.topologicalSort().toTypedArray().map { vertex -> strata[vertex] ?: error("No stratum") }
+
+  // Evaluate the different strata in order.
+  var result = edb
+  for (stratum in order) {
+    val rules = idb.filterKeys { it in stratum }
+
+    result = evalStrata(rules, result)
+  }
+  return result
 }
