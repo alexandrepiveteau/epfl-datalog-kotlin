@@ -170,7 +170,7 @@ internal fun Context.naiveEval(idb: IDB, edb: EDB): EDB {
  * @param evalStrata the evaluator to use for each stratum.
  * @return the resulting [EDB].
  */
-internal fun Context.stratifiedEval(
+internal fun stratifiedEval(
     idb: IDB,
     edb: EDB,
     evalStrata: (IDB, EDB) -> EDB,

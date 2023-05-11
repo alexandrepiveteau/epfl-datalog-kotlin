@@ -7,7 +7,7 @@ It is a pure Kotlin implementation of a solver for a limited subset of Datalog.
 
 This implementation of Datalog is restricted in the following ways:
 
-+ The only supported data type is opaque, and is represented by the `Value` type.
++ The only supported data type is opaque, and is represented by the `Atom` type.
 + All values must be pre-declared in the program before they can be used in rules.
 + Negation is only allowed in stratified programs.
 
