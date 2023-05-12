@@ -1,5 +1,6 @@
 package io.github.alexandrepiveteau.datalog.dsl
 
+import io.github.alexandrepiveteau.datalog.core.Algorithm
 import io.github.alexandrepiveteau.datalog.core.Atom as CoreAtom
 import io.github.alexandrepiveteau.datalog.core.ProgramBuilder as CoreProgramBuilder
 import io.github.alexandrepiveteau.datalog.core.asAtomList
@@ -9,15 +10,19 @@ import io.github.alexandrepiveteau.datalog.core.map
  * Runs a Datalog program within the given [scope] and returns the result. The [scope] is a
  * [DatalogScope] receiver.
  *
+ * @param algorithm the [Algorithm] to use for solving the Datalog program.
  * @param T the type of the elements in the relations.
  * @param R the return type of the Datalog program.
  * @param scope the scope in which the Datalog program is run.
  * @return the result of the Datalog program.
  */
-inline fun <T, R> datalog(scope: DatalogScope<T>.() -> R): R = datalog<T>().scope()
+inline fun <T, R> datalog(
+    algorithm: Algorithm = Algorithm.Naive,
+    scope: DatalogScope<T>.() -> R
+): R = datalog<T>(algorithm).scope()
 
 /** Returns a [DatalogScope] instance, which can be used for the DSL. */
-@PublishedApi internal fun <T> datalog(): DatalogScope<T> = Datalog()
+@PublishedApi internal fun <T> datalog(algorithm: Algorithm): DatalogScope<T> = Datalog(algorithm)
 
 // IMPLEMENTATION
 
@@ -36,8 +41,8 @@ private class Translation<K, V>(private val generator: () -> V) {
   }
 }
 
-private class Datalog<T> : DatalogScope<T> {
-  private val builder = CoreProgramBuilder()
+private class Datalog<T>(algorithm: Algorithm) : DatalogScope<T> {
+  private val builder = CoreProgramBuilder(algorithm)
   private val translation = Translation<T, CoreAtom>(builder::constant)
 
   override fun constants(vararg values: T) {
@@ -58,11 +63,12 @@ private class Datalog<T> : DatalogScope<T> {
   }
 
   override fun Term<T>.plusAssign(terms: Terms<T>) {
-    return builder.rule(predicate = predicate.id, atoms = atoms.map { it.translate() }.asAtomList()) {
-      for ((relation, atoms, negated) in terms.terms) {
-        body(relation.id, atoms.map { it.translate() }.asAtomList(), negated)
-      }
-    }
+    return builder.rule(
+        predicate = predicate.id, atoms = atoms.map { it.translate() }.asAtomList()) {
+          for ((relation, atoms, negated) in terms.terms) {
+            body(relation.id, atoms.map { it.translate() }.asAtomList(), negated)
+          }
+        }
   }
 
   override fun solve(predicate: Predicate<T>): Set<Term<T>> {

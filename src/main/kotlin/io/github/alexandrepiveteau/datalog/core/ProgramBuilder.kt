@@ -48,4 +48,8 @@ interface ProgramBuilder {
 /**
  * Returns a [ProgramBuilder], which can be used to build a [Program] and obtain results from it.
  */
-fun ProgramBuilder(): ProgramBuilder = DatalogProgram()
+fun ProgramBuilder(algorithm: Algorithm = Algorithm.Naive): ProgramBuilder =
+    when (algorithm) {
+      Algorithm.Naive -> DatalogProgram.naive()
+      Algorithm.SemiNaive -> DatalogProgram.semiNaive()
+    }

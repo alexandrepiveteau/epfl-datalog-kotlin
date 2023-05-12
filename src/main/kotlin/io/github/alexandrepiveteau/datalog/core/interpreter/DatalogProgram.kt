@@ -6,8 +6,13 @@ import io.github.alexandrepiveteau.datalog.core.interpreter.algebra.Relation
 /**
  * An implementation of [Program] and [ProgramBuilder] which executes the rules with the naive
  * Datalog evaluation algorithm.
+ *
+ * @param evalStrata the function used to evaluate each stratum.
  */
-internal class DatalogProgram : ProgramBuilder, Program {
+internal class DatalogProgram
+private constructor(
+    private val evalStrata: (Context) -> (IDB, EDB) -> EDB,
+) : ProgramBuilder, Program {
 
   private var nextRelation = 0
   private var nextVariable = -1
@@ -33,9 +38,20 @@ internal class DatalogProgram : ProgramBuilder, Program {
 
   override fun solve(predicate: Predicate): Iterable<Fact> {
     val (idb, edb) = partition(rules)
-    val result = with(context()) { stratifiedEval(idb, edb, ::semiNaiveEval) }
+    val result = stratifiedEval(idb, edb, evalStrata(context()))
     val facts = result[predicate] ?: return emptyList()
     return facts.mapToFacts(predicate).asIterable()
+  }
+
+  companion object {
+
+    /** Returns a [DatalogProgram] which executes using naive evaluation. */
+    fun naive(): DatalogProgram = DatalogProgram { context -> with(context) { ::naiveEval } }
+
+    /** Returns a [DatalogProgram] which executes using semi-naive evaluation. */
+    fun semiNaive(): DatalogProgram = DatalogProgram { context ->
+      with(context) { ::semiNaiveEval }
+    }
   }
 }
 
