@@ -1,5 +1,6 @@
 package io.github.alexandrepiveteau.datalog.dsl
 
+import io.github.alexandrepiveteau.datalog.core.Algorithm
 import kotlin.test.assertEquals
 import kotlin.test.assertTrue
 
@@ -25,5 +26,14 @@ fun DatalogScope<Int>.expect(predicate: Predicate<Int>, values: MutableSet<List<
   assertEquals(expected, res)
 }
 
-/** A helper function that runs a datalog program with [Int]. */
-fun program(scope: DatalogScope<Int>.() -> Unit): Unit = datalog { scope() }
+/**
+ * A helper function that runs a datalog program with [Int], testing the program with multiple
+ * configurations.
+ *
+ * @param scope the scope in which the Datalog program is run.
+ */
+fun program(scope: DatalogScope<Int>.() -> Unit) {
+  for (algorithm in Algorithm.values()) {
+    datalog(algorithm, scope)
+  }
+}
