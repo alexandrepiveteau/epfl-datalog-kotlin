@@ -10,7 +10,7 @@ class NegationTest {
     val solution = program {
       constants(1, 2, 3)
 
-      val (a, b) = relations()
+      val (a, b) = predicates()
       val (x) = variables()
 
       b(x) += !a(x)
@@ -22,7 +22,7 @@ class NegationTest {
   @Test
   fun `non-reachability in graph`() {
     val solution = program {
-      val (e, tc, ntc) = relations()
+      val (e, tc, ntc) = predicates()
       val (x, y, z) = variables()
 
       e(1, 2) += empty

@@ -4,8 +4,6 @@ package io.github.alexandrepiveteau.datalog.dsl
  * The scope in which Datalog programs are handled. The domain of the program is defined as the set
  * of values that appear in the rules or the facts, and automatically inferred from the program.
  *
- * TODO : Provide an API to let users define their domain explicitly.
- *
  * @param T the type of the elements in the relations.
  */
 interface DatalogScope<T> {
@@ -26,18 +24,18 @@ interface DatalogScope<T> {
   /** Returns a [Variables] instance. */
   fun variables(): Variables<T> = Variables { variable() }
 
-  /** Returns a new [Relation] which is guaranteed to be unique within this [DatalogScope]. */
-  fun relation(): Relation<T>
+  /** Returns a new [Predicate] which is guaranteed to be unique within this [DatalogScope]. */
+  fun predicate(): Predicate<T>
 
-  /** Returns a [Relations] instance. */
-  fun relations(): Relations<T> = Relations { relation() }
+  /** Returns a [Predicates] instance. */
+  fun predicates(): Predicates<T> = Predicates { predicate() }
 
   // Utilities for creating terms.
   fun <R> R.asValue(): Value<R> = Value(this)
 
   // Relation to term operators.
-  operator fun Relation<T>.invoke(vararg atoms: T) = Term(this, atoms.map { Value(it) }, false)
-  operator fun Relation<T>.invoke(vararg atoms: Atom<T>) = Term(this, atoms.toList(), false)
+  operator fun Predicate<T>.invoke(vararg atoms: T) = Term(this, atoms.map { Value(it) }, false)
+  operator fun Predicate<T>.invoke(vararg atoms: Atom<T>) = Term(this, atoms.toList(), false)
   operator fun Term<T>.not() = copy(negated = !negated)
 
   // Terms operators.
@@ -51,11 +49,11 @@ interface DatalogScope<T> {
   operator fun Term<T>.plusAssign(term: Term<T>) = plusAssign(term + empty)
 
   /**
-   * Derives a new [Set] of [Term] that are implied by the given [relation] and the current set of
+   * Derives a new [Set] of [Term] that are implied by the given [predicate] and the current set of
    * rules. If the semantics of the program is not well-defined, this function may return an empty
    * set.
    *
-   * @param relation the relation to solve.
+   * @param predicate the [Predicate] to solve.
    */
-  fun solve(relation: Relation<T>): Set<Term<T>>
+  fun solve(predicate: Predicate<T>): Set<Term<T>>
 }

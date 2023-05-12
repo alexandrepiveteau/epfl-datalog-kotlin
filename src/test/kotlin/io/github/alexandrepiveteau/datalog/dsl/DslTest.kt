@@ -7,14 +7,14 @@ class DslTest {
 
   @Test
   fun `no rules yields no facts`() {
-    val solution = program { relation() }
+    val solution = program { predicate() }
     assertEquals(emptySet(), solution)
   }
 
   @Test
   fun `no derivation rules yields original facts`() {
     val solution = program {
-      val a = relation()
+      val a = predicate()
       a(1) += empty
       a(2) += empty
       a
@@ -25,7 +25,7 @@ class DslTest {
   @Test
   fun `no derivation rules only yields facts from requested relation`() {
     val solution = program {
-      val (a, b) = relations()
+      val (a, b) = predicates()
       a(1) += empty
       b(2) += empty
       a(3) += empty
@@ -38,7 +38,7 @@ class DslTest {
   @Test
   fun `simple derivation yields fact`() {
     val solution = program {
-      val (a, b) = relations()
+      val (a, b) = predicates()
       val (x) = variables()
       a(1) += empty
       b(x) += a(x)
@@ -50,7 +50,7 @@ class DslTest {
   @Test
   fun `transitive closure`() {
     val solution = program {
-      val (e, tc) = relations()
+      val (e, tc) = predicates()
       val (x, y, z) = variables()
 
       e(1, 2) += empty
@@ -66,7 +66,7 @@ class DslTest {
   @Test
   fun `transitive closure complex`() {
     val solution = program {
-      val (e, tc, r) = relations()
+      val (e, tc, r) = predicates()
       val (x, y, z) = variables()
 
       e(1, 2) += empty

@@ -1,12 +1,9 @@
 package io.github.alexandrepiveteau.datalog.core.interpreter
 
 import io.github.alexandrepiveteau.datalog.core.*
-import io.github.alexandrepiveteau.datalog.core.Relation as CoreRelation
 import io.github.alexandrepiveteau.datalog.core.interpreter.algebra.*
 import io.github.alexandrepiveteau.datalog.core.interpreter.algebra.Column.Constant
 import io.github.alexandrepiveteau.datalog.core.interpreter.algebra.Column.Index
-import io.github.alexandrepiveteau.datalog.core.interpreter.algebra.Relation
-import io.github.alexandrepiveteau.datalog.core.interpreter.algebra.empty
 import io.github.alexandrepiveteau.graphs.Vertex
 import io.github.alexandrepiveteau.graphs.algorithms.stronglyConnectedComponentsKosaraju
 import io.github.alexandrepiveteau.graphs.algorithms.topologicalSort
@@ -66,10 +63,10 @@ private fun selection(rule: AtomList): Set<Set<Column>> {
 }
 
 /** The extensional database is the set of facts that have already been derived. */
-internal typealias EDB = Map<CoreRelation, Relation>
+internal typealias EDB = Map<Predicate, Relation>
 
 /** The intentional database is the set of rules that may be used to derive new facts. */
-internal typealias IDB = Map<CoreRelation, Set<Rule>>
+internal typealias IDB = Map<Predicate, Set<Rule>>
 
 /**
  * [evalRule] takes one [Rule], and evaluates it against a list of [Relation]s, returning the values
@@ -87,7 +84,7 @@ private fun Context.evalRule(rule: Rule, edb: EDB): Relation {
 
   val relations =
       rule.clauses.map {
-        var relation = edb[it.relation] ?: Relation.empty(it.atoms.size)
+        var relation = edb[it.predicate] ?: Relation.empty(it.atoms.size)
         if (it.negated) relation = Relation.domain(relation.arity, domain) - relation
         relation
       }
@@ -99,17 +96,17 @@ private fun Context.evalRule(rule: Rule, edb: EDB): Relation {
 }
 
 /**
- * [eval] takes one [CoreRelation], and evaluates it against a list of [Relation]s, returning the
+ * [eval] takes one [Predicate], and evaluates it against a list of [Relation]s, returning the
  * values that could be derived as a new [Relation].
  *
- * This will throw an [IllegalStateException] if the [CoreRelation] is not present in the [IDB], or
- * if there are no derivation rules for the [CoreRelation].
+ * This will throw an [IllegalStateException] if the [Predicate] is not present in the [IDB], or if
+ * there are no derivation rules for the [Predicate].
  *
- * @param predicate the [CoreRelation] to evaluate.
+ * @param predicate the [Predicate] to evaluate.
  * @param idb the [IDB] to evaluate the rule against.
  * @param edb the [EDB] to evaluate the rule against.
  */
-private fun Context.eval(predicate: CoreRelation, idb: IDB, edb: EDB): Relation {
+private fun Context.eval(predicate: Predicate, idb: IDB, edb: EDB): Relation {
   val rules = idb[predicate] ?: error("No rules for $predicate")
   var result = Relation.empty(rules.first().atoms.size)
   for (rule in rules) {
@@ -171,8 +168,8 @@ internal fun stratifiedEval(
   // 2. Use a topological sort to order the strata for evaluation.
   // 3. Evaluate each stratum using the evalStrata evaluator.
   // 4. Return the union of all the strata.
-  val rulesToVertices = mutableMapOf<CoreRelation, Vertex>()
-  val verticesToRules = mutableMapOf<Vertex, CoreRelation>()
+  val rulesToVertices = mutableMapOf<Predicate, Vertex>()
+  val verticesToRules = mutableMapOf<Vertex, Predicate>()
   val graph = buildDirectedGraph {
     for ((id, _) in idb) {
       val vertex = addVertex()
@@ -182,9 +179,9 @@ internal fun stratifiedEval(
     for ((_, rules) in idb) {
       for (rule in rules) {
         for (clause in rule.clauses) {
-          if (clause.relation in idb) {
-            val from = rulesToVertices[clause.relation] ?: error("No vertex for ${clause.relation}")
-            val to = rulesToVertices[rule.relation] ?: error("No vertex for ${rule.relation}")
+          if (clause.predicate in idb) {
+            val from = rulesToVertices[clause.predicate] ?: error("No vertex for ${clause.predicate}")
+            val to = rulesToVertices[rule.predicate] ?: error("No vertex for ${rule.predicate}")
             addArc(from arcTo to)
           }
         }
@@ -192,7 +189,7 @@ internal fun stratifiedEval(
     }
   }
   val (scc, map) = graph.stronglyConnectedComponentsKosaraju()
-  val strata = mutableMapOf<Vertex, MutableSet<CoreRelation>>()
+  val strata = mutableMapOf<Vertex, MutableSet<Predicate>>()
 
   map.forEach { v, component ->
     val stratum = strata.getOrPut(component) { mutableSetOf() }

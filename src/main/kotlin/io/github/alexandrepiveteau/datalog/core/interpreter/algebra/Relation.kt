@@ -129,20 +129,6 @@ internal operator fun Relation.minus(other: Relation): Relation {
 }
 
 /**
- * The kind of outputs which are possible for a [Relation] projection.
- *
- * @see Relation.project
- */
-internal sealed interface Column {
-
-  /** Projects a constant value for all rows. */
-  data class Constant(val value: Atom) : Column
-
-  /** Projects a value from the row at the given index. */
-  data class Index(val index: Int) : Column
-}
-
-/**
  * Applies the given [projection] to the relation, and returns the result. The arity of the
  * resulting relation is the same as the number of columns in the projection.
  */

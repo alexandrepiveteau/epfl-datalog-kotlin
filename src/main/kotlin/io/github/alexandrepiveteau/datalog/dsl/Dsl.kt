@@ -44,7 +44,7 @@ private class Datalog<T> : DatalogScope<T> {
     for (constant in values) translation.getValue(constant)
   }
   override fun variable() = Variable<T>(builder.variable())
-  override fun relation() = Relation<T>(builder.relation())
+  override fun predicate() = Predicate<T>(builder.predicate())
 
   private fun Atom<T>.translate(): CoreAtom {
     return when (this) {
@@ -58,21 +58,21 @@ private class Datalog<T> : DatalogScope<T> {
   }
 
   override fun Term<T>.plusAssign(terms: Terms<T>) {
-    return builder.rule(relation = relation.id, atoms = atoms.map { it.translate() }.asAtomList()) {
+    return builder.rule(predicate = predicate.id, atoms = atoms.map { it.translate() }.asAtomList()) {
       for ((relation, atoms, negated) in terms.terms) {
         body(relation.id, atoms.map { it.translate() }.asAtomList(), negated)
       }
     }
   }
 
-  override fun solve(relation: Relation<T>): Set<Term<T>> {
+  override fun solve(predicate: Predicate<T>): Set<Term<T>> {
     return builder
         .build()
-        .solve(relation.id)
+        .solve(predicate.id)
         .asSequence()
         .map {
           Term(
-              relation = Relation(it.relation),
+              predicate = Predicate(it.predicate),
               atoms = it.atoms.map { atom -> atom.translate() },
               negated = false,
           )

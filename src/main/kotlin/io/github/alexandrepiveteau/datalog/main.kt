@@ -18,7 +18,7 @@ private fun input() = sequence {
 fun main() {
   val solution =
       datalog<Int, Set<Term<Int>>> {
-        val (r, v, t, tc) = relations()
+        val (r, v, t, tc) = predicates()
         val (x, y, z) = variables()
 
         // Set up the EDB
