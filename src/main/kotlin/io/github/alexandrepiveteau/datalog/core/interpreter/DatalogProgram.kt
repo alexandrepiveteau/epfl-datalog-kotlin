@@ -33,7 +33,7 @@ internal class DatalogProgram : ProgramBuilder, Program {
 
   override fun solve(predicate: Predicate): Iterable<Fact> {
     val (idb, edb) = partition(rules)
-    val result = with(context()) { stratifiedEval(idb, edb, ::naiveEval) }
+    val result = with(context()) { stratifiedEval(idb, edb, ::semiNaiveEval) }
     val facts = result[predicate] ?: return emptyList()
     return facts.mapToFacts(predicate).asIterable()
   }

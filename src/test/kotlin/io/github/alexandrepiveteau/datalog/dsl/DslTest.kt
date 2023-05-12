@@ -48,6 +48,20 @@ class DslTest {
   }
 
   @Test
+  fun `simple derivation preserves intermediate result`() {
+    val solution = program {
+      val (a, b, c) = predicates()
+      val (x) = variables()
+
+      a(1) += empty
+      b(x) += a(x)
+      c(x) += b(x)
+      b
+    }
+    assertEquals(setOf(listOf(1)), solution)
+  }
+
+  @Test
   fun `transitive closure`() {
     val solution = program {
       val (e, tc) = predicates()

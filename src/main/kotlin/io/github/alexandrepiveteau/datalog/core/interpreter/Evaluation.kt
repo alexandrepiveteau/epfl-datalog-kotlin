@@ -71,7 +71,7 @@ private fun selection(rule: AtomList): Set<Set<Column>> {
  * @param rule the [Rule] to evaluate.
  * @param relations the [Relation]s to evaluate the rule against.
  */
-private fun Context.evalRule(rule: Rule, vararg relations: Relation): Relation {
+private fun Context.evalRule(rule: Rule, relations: List<Relation>): Relation {
   require(rule.clauses.size == relations.size) { "Not the same number of relations and clauses." }
   // 1. Negate all the relations that are negated in the rule.
   // 2. Generate a concatenation of all atoms in the rule, after the join.
@@ -84,41 +84,121 @@ private fun Context.evalRule(rule: Rule, vararg relations: Relation): Relation {
 }
 
 /**
- * [eval] takes one [Predicate], and evaluates it against the [IDB] and [EDB], returning the values
- * that could be derived as a new [Relation].
+ * [evalRuleIncremental] takes a [Rule] and two sets of [Relation]s, and evaluates them against the
+ * list of [relations] and [incremental] relations, returning the values that could be derived as a
+ * new [Relation].
  *
- * @param predicate the [Predicate] to evaluate.
- * @param idb the [IDB] to evaluate the rule against.
- * @param edb the [EDB] to evaluate the rule against.
+ * For each [incremental] relation, we evaluate the rule with all the [relations] relations and one
+ * [incremental] relation. This is done by replacing the [incremental] relation with the [relations]
+ * relation at the same index. We then take the union of all the results, and return the distinct
+ * values.
+ *
+ * @param rule the [Rule] to evaluate.
+ * @param relations the base [Relation]s to evaluate the rule against.
+ * @param incremental the delta [Relation]s to evaluate the rule against.
  */
-private fun Context.eval(predicate: Predicate, idb: IDB, edb: EDB): Relation {
-  val rules = idb[predicate]
-  var result = Relation.empty(idb.arity(predicate))
-  for (rule in rules) {
-    val list = rule.clauses.map { edb[it.predicate] ?: Relation.empty(it.arity) }
-    result = result.union(evalRule(rule, *list.toTypedArray()))
+private fun Context.evalRuleIncremental(
+    rule: Rule,
+    relations: List<Relation>,
+    incremental: List<Relation>,
+): Relation {
+  require(rule.clauses.size == relations.size) { "Not the same number of relations and clauses." }
+  require(rule.clauses.size == incremental.size) { "Not the same number of relations and clauses." }
+  var result = Relation.empty(rule.arity)
+  for (i in 0 until rule.clauses.size) {
+    val args = List(rule.clauses.size) { index -> if (index == i) incremental[i] else relations[i] }
+    result = result.union(evalRule(rule, args))
   }
   return result.distinct()
 }
 
 /**
- * [naiveEval] takes a list of [PredicateRule]s as an intentional database, and evaluates them
- * against a list of facts to produce a new set of facts.
+ * [eval] takes a [Predicate], and evaluates it against the [IDB] and the base and derived [EDB],
+ * returning the values that could be derived as a new [Relation]. In general, the intersection of
+ * the base and derived [EDB] is empty, but this is not enforced.
+ *
+ * @param predicate the [Predicate] to evaluate.
+ * @param idb the [IDB] to evaluate the rule against.
+ * @param base the base [EDB] to evaluate the rule against.
+ * @param derived the derived [EDB] to evaluate the rule against.
+ * @return the [Relation] that could be derived from the [IDB] and the [EDB].
  */
-internal fun Context.naiveEval(idb: IDB, edb: EDB): EDB {
-  val relations = edb.toMutableEDB()
-  val updated = edb.toMutableEDB()
+private fun Context.eval(predicate: Predicate, idb: IDB, base: EDB, derived: EDB): Relation {
+  val rules = idb[predicate]
+  var result = Relation.empty(idb.arity(predicate))
+  val facts = base + derived
+  for (rule in rules) {
+    val list = rule.clauses.map { facts[it.predicate] ?: Relation.empty(it.arity) }
+    result = result.union(evalRule(rule, list))
+  }
+  return result.distinct()
+}
+
+/**
+ * [evalIncremental] takes one [Predicate], and evaluates it against the [IDB], base [EDB], and
+ * delta [EDB], returning the values that could be derived as a new [Relation].
+ *
+ * @param predicate the [Predicate] to evaluate.
+ * @param idb the [IDB] to evaluate the rule against.
+ * @param base the base [EDB] to evaluate the rule against.
+ * @param derived the derived [EDB] to evaluate the rule against.
+ * @param delta the delta [EDB] to evaluate the rule against.
+ */
+private fun Context.evalIncremental(
+    predicate: Predicate,
+    idb: IDB,
+    base: EDB,
+    derived: EDB,
+    delta: EDB,
+): Relation {
+  val rules = idb[predicate]
+  var result = Relation.empty(idb.arity(predicate))
+  val factsBase = base + derived
+  val factsDelta = base + delta // Negation needs base facts to be present in the delta.
+  for (rule in rules) {
+    val baseList = rule.clauses.map { factsBase[it.predicate] ?: Relation.empty(it.arity) }
+    val deltaList = rule.clauses.map { factsDelta[it.predicate] ?: Relation.empty(it.arity) }
+    result = result.union(evalRuleIncremental(rule, baseList, deltaList))
+  }
+  return result.distinct()
+}
+
+/** [naiveEval] takes an [IDB] and a base [EDB], and derives new facts. */
+internal fun Context.naiveEval(idb: IDB, base: EDB): EDB {
+  val rels = MutableEDB.empty()
+  val copy = MutableEDB.empty()
 
   do {
-    for (predicate in idb) {
-      updated[predicate] = relations[predicate] ?: Relation.empty(idb.arity(predicate))
-    }
-    for (predicate in idb) {
-      relations[predicate] = eval(predicate, idb, relations)
-    }
-  } while (relations != updated)
+    for (predicate in idb) copy[predicate] = rels[predicate] ?: Relation.empty(idb.arity(predicate))
+    for (predicate in idb) rels[predicate] = eval(predicate, idb, base, rels)
+  } while (rels != copy)
 
-  return relations + edb
+  return rels
+}
+
+/** [semiNaiveEval] takes an [IDB] and a base [EDB], and derives new facts. */
+internal fun Context.semiNaiveEval(idb: IDB, edb: EDB): EDB {
+  val rels = MutableEDB.empty()
+  val delta = MutableEDB.empty()
+  val copy = MutableEDB.empty()
+
+  for (predicate in idb) {
+    val res = eval(predicate, idb, edb, MutableEDB.empty())
+    rels[predicate] = res
+    delta[predicate] = res
+  }
+
+  do {
+    for (p in idb) copy[p] = delta[p] ?: Relation.empty(idb.arity(p))
+    for (p in idb) {
+      val facts = evalIncremental(p, idb, edb, rels, copy)
+      val existing = rels[p] ?: Relation.empty(idb.arity(p))
+      delta[p] = facts - existing
+    }
+    rels += delta
+  } while (delta.isNotEmpty())
+
+  return rels
 }
 
 /**
@@ -175,7 +255,7 @@ internal fun stratifiedEval(
   var result = edb
   for (stratum in order) {
     val rules = idb.filter(stratum)
-    result = evalStrata(rules, result)
+    result += evalStrata(rules, result)
   }
   return result
 }
