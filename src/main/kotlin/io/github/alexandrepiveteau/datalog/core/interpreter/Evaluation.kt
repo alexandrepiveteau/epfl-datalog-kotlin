@@ -78,13 +78,7 @@ private fun Context.evalRule(rule: Rule, vararg relations: Relation): Relation {
   // 3. Join all the relations.
   // 4. Select the rows that match the constants and variables.
   // 5. Project the rows to the correct indices, and add constants to the projection.
-  val negated =
-      relations.mapIndexed { idx, r ->
-        if (rule.clauses[idx].negated) {
-          print("Negating $r")
-          r.negated()
-        } else r
-      }
+  val negated = relations.mapIndexed { idx, r -> if (rule.clauses[idx].negated) r.negated() else r }
   val concat = rule.clauses.flatMap { it.atoms.toList() }.asAtomList()
   return negated.join().select(selection(concat)).project(projection(rule.atoms, concat))
 }
