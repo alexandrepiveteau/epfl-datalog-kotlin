@@ -1,111 +1,106 @@
 package io.github.alexandrepiveteau.datalog.dsl
 
 import kotlin.test.Test
-import kotlin.test.assertEquals
 
 class DslTest {
 
+  @Test fun `no rules yields no facts`() = program { expect(predicate()) {} }
+
   @Test
-  fun `no rules yields no facts`() {
-    val solution = program { predicate() }
-    assertEquals(emptySet(), solution)
+  fun `no derivation rules yields original facts`() = program {
+    val a = predicate()
+    a(1) += empty
+    a(2) += empty
+
+    expect(a) {
+      add(listOf(1))
+      add(listOf(2))
+    }
   }
 
   @Test
-  fun `no derivation rules yields original facts`() {
-    val solution = program {
-      val a = predicate()
-      a(1) += empty
-      a(2) += empty
-      a
+  fun `no derivation rules only yields facts from requested relation`() = program {
+    val (a, b) = predicates()
+    a(1) += empty
+    b(2) += empty
+    a(3) += empty
+    b(4) += empty
+
+    expect(a) {
+      add(listOf(1))
+      add(listOf(3))
     }
-    assertEquals(setOf(listOf(1), listOf(2)), solution)
+
+    expect(b) {
+      add(listOf(2))
+      add(listOf(4))
+    }
   }
 
   @Test
-  fun `no derivation rules only yields facts from requested relation`() {
-    val solution = program {
-      val (a, b) = predicates()
-      a(1) += empty
-      b(2) += empty
-      a(3) += empty
-      b(4) += empty
-      a
-    }
-    assertEquals(setOf(listOf(1), listOf(3)), solution)
+  fun `simple derivation yields fact`() = program {
+    val (a, b) = predicates()
+    val (x) = variables()
+    a(1) += empty
+    b(x) += a(x)
+
+    expect(b) { add(listOf(1)) }
   }
 
   @Test
-  fun `simple derivation yields fact`() {
-    val solution = program {
-      val (a, b) = predicates()
-      val (x) = variables()
-      a(1) += empty
-      b(x) += a(x)
-      b
-    }
-    assertEquals(setOf(listOf(1)), solution)
+  fun `simple derivation preserves intermediate result`() = program {
+    val (a, b, c) = predicates()
+    val (x) = variables()
+
+    a(1) += empty
+    b(x) += a(x)
+    c(x) += b(x)
+
+    expect(c) { add(listOf(1)) }
   }
 
   @Test
-  fun `simple derivation preserves intermediate result`() {
-    val solution = program {
-      val (a, b, c) = predicates()
-      val (x) = variables()
+  fun `transitive closure`() = program {
+    val (e, tc) = predicates()
+    val (x, y, z) = variables()
 
-      a(1) += empty
-      b(x) += a(x)
-      c(x) += b(x)
-      b
+    e(1, 2) += empty
+    e(2, 3) += empty
+
+    tc(x, y) += e(x, y)
+    tc(x, y) += tc(x, z) + e(z, y)
+
+    expect(tc) {
+      add(listOf(1, 2))
+      add(listOf(1, 3))
+      add(listOf(2, 3))
     }
-    assertEquals(setOf(listOf(1)), solution)
   }
 
   @Test
-  fun `transitive closure`() {
-    val solution = program {
-      val (e, tc) = predicates()
-      val (x, y, z) = variables()
+  fun `transitive closure complex`() = program {
+    val (e, tc, r) = predicates()
+    val (x, y, z) = variables()
 
-      e(1, 2) += empty
-      e(2, 3) += empty
+    e(1, 2) += empty
+    e(2, 3) += empty
+    e(3, 4) += empty
+    e(4, 5) += empty
+    e(5, 6) += empty
+    e(6, 1) += empty
 
-      tc(x, y) += e(x, y)
-      tc(x, y) += tc(x, z) + e(z, y)
-      tc
+    tc(x, y) += e(x, y)
+    tc(x, y) += tc(x, z) + e(z, y)
+
+    r(x) += tc(1.asValue(), x)
+
+    expect(r) {
+      add(listOf(1))
+      add(listOf(2))
+      add(listOf(3))
+      add(listOf(4))
+      add(listOf(5))
+      add(listOf(6))
     }
-    assertEquals(setOf(listOf(1, 2), listOf(1, 3), listOf(2, 3)), solution)
-  }
-
-  @Test
-  fun `transitive closure complex`() {
-    val solution = program {
-      val (e, tc, r) = predicates()
-      val (x, y, z) = variables()
-
-      e(1, 2) += empty
-      e(2, 3) += empty
-      e(3, 4) += empty
-      e(4, 5) += empty
-      e(5, 6) += empty
-      e(6, 1) += empty
-
-      tc(x, y) += e(x, y)
-      tc(x, y) += tc(x, z) + e(z, y)
-
-      r(x) += tc(1.asValue(), x)
-      r
-    }
-    assertEquals(
-        setOf(
-            listOf(1),
-            listOf(2),
-            listOf(3),
-            listOf(4),
-            listOf(5),
-            listOf(6),
-        ),
-        solution,
-    )
   }
 }
