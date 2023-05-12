@@ -13,8 +13,8 @@ import io.github.alexandrepiveteau.graphs.forEach
 import io.github.alexandrepiveteau.graphs.toTypedArray
 
 /**
- * Returns the [Set] of all the indices of the variables in the [Rule]. This is used to generate the
- * selection clauses.
+ * Returns the [Set] of all the indices of the variables in the [PredicateRule]. This is used to
+ * generate the selection clauses.
  */
 private fun variableIndices(rule: AtomList): Set<List<Int>> {
   val variables = mutableMapOf<Atom, MutableList<Int>>()
@@ -25,8 +25,8 @@ private fun variableIndices(rule: AtomList): Set<List<Int>> {
 }
 
 /**
- * Returns the [List] of indices for constants in the [Rule]. This is used to generate the clauses
- * that filter the constants.
+ * Returns the [List] of indices for constants in the [PredicateRule]. This is used to generate the
+ * clauses that filter the constants.
  */
 private fun constantIndices(rule: AtomList): List<Int> {
   val constants = mutableListOf<Int>()
@@ -62,89 +62,65 @@ private fun selection(rule: AtomList): Set<Set<Column>> {
   }
 }
 
-/** The extensional database is the set of facts that have already been derived. */
-internal typealias EDB = Map<Predicate, Relation>
-
-/** The intentional database is the set of rules that may be used to derive new facts. */
-internal typealias IDB = Map<Predicate, Set<Rule>>
-
 /**
- * [evalRule] takes one [Rule], and evaluates it against a list of [Relation]s, returning the values
- * that could be derived as a new [Relation].
+ * [evalRule] takes a [Rule] and a list of [Relation]s, and evaluates it against the list of
+ * [Relation]s, returning the values that could be derived as a new [Relation].
+ *
+ * The rule must have exactly one clause for each evaluated [Relation].
  *
  * @param rule the [Rule] to evaluate.
- * @param edb the [EDB] to evaluate the rule against.
+ * @param relations the [Relation]s to evaluate the rule against.
  */
-private fun Context.evalRule(rule: Rule, edb: EDB): Relation {
-  // 1. Find all the variables in the rule, and their indices.
-  // 2. Find all the constants in the rule.
-  // 3. Generate all the selection clauses.
-  // 4. Perform the join and apply the selection clauses.
-  // 5. Perform a projection to remap the indices.
-
-  val relations =
-      rule.clauses.map {
-        var relation = edb[it.predicate] ?: Relation.empty(it.atoms.size)
-        if (it.negated) relation = Relation.domain(relation.arity, domain) - relation
-        relation
+private fun Context.evalRule(rule: Rule, vararg relations: Relation): Relation {
+  require(rule.clauses.size == relations.size) { "Not the same number of relations and clauses." }
+  // 1. Negate all the relations that are negated in the rule.
+  // 2. Generate a concatenation of all atoms in the rule, after the join.
+  // 3. Join all the relations.
+  // 4. Select the rows that match the constants and variables.
+  // 5. Project the rows to the correct indices, and add constants to the projection.
+  val negated =
+      relations.mapIndexed { idx, r ->
+        if (rule.clauses[idx].negated) {
+          print("Negating $r")
+          r.negated()
+        } else r
       }
   val concat = rule.clauses.flatMap { it.atoms.toList() }.asAtomList()
-  val projection = projection(rule.atoms, concat)
-
-  // Join, then filter, then project.
-  return relations.join().select(selection(concat)).project(projection)
+  return negated.join().select(selection(concat)).project(projection(rule.atoms, concat))
 }
 
 /**
- * [eval] takes one [Predicate], and evaluates it against a list of [Relation]s, returning the
- * values that could be derived as a new [Relation].
- *
- * This will throw an [IllegalStateException] if the [Predicate] is not present in the [IDB], or if
- * there are no derivation rules for the [Predicate].
+ * [eval] takes one [Predicate], and evaluates it against the [IDB] and [EDB], returning the values
+ * that could be derived as a new [Relation].
  *
  * @param predicate the [Predicate] to evaluate.
  * @param idb the [IDB] to evaluate the rule against.
  * @param edb the [EDB] to evaluate the rule against.
  */
 private fun Context.eval(predicate: Predicate, idb: IDB, edb: EDB): Relation {
-  val rules = idb[predicate] ?: error("No rules for $predicate")
-  var result = Relation.empty(rules.first().atoms.size)
+  val rules = idb[predicate]
+  var result = Relation.empty(idb.arity(predicate))
   for (rule in rules) {
-    result = result.union(evalRule(rule, edb))
+    val list = rule.clauses.map { edb[it.predicate] ?: Relation.empty(it.arity) }
+    result = result.union(evalRule(rule, *list.toTypedArray()))
   }
   return result.distinct()
 }
 
-/** Performs the union between two [EDB]. */
-private operator fun EDB.plus(other: EDB): EDB = buildMap {
-  this@plus.forEach { (id, rel) ->
-    val o = other[id] ?: Relation.empty(rel.arity)
-    put(id, rel.union(o))
-  }
-  other.forEach { (id, rel) -> if (!containsKey(id)) put(id, rel) }
-}
-
 /**
- * [naiveEval] takes a list of [Rule]s as an intentional database, and evaluates them against a list
- * of facts to produce a new set of facts.
+ * [naiveEval] takes a list of [PredicateRule]s as an intentional database, and evaluates them
+ * against a list of facts to produce a new set of facts.
  */
 internal fun Context.naiveEval(idb: IDB, edb: EDB): EDB {
-  val relations =
-      idb.mapValuesTo(mutableMapOf()) { (_, rules) ->
-        val arity = rules.first().atoms.size
-        Relation.empty(arity)
-      }
-
-  val updated =
-      idb.mapValuesTo(mutableMapOf()) { (_, rules) ->
-        val arity = rules.first().atoms.size
-        Relation.empty(arity)
-      }
+  val relations = edb.toMutableEDB()
+  val updated = edb.toMutableEDB()
 
   do {
-    for ((id, relation) in relations) updated[id] = relation
-    for ((id, _) in relations) {
-      relations[id] = eval(id, idb, relations + edb)
+    for (predicate in idb) {
+      updated[predicate] = relations[predicate] ?: Relation.empty(idb.arity(predicate))
+    }
+    for (predicate in idb) {
+      relations[predicate] = eval(predicate, idb, relations)
     }
   } while (relations != updated)
 
@@ -171,16 +147,18 @@ internal fun stratifiedEval(
   val rulesToVertices = mutableMapOf<Predicate, Vertex>()
   val verticesToRules = mutableMapOf<Vertex, Predicate>()
   val graph = buildDirectedGraph {
-    for ((id, _) in idb) {
+    for (id in idb) {
       val vertex = addVertex()
       rulesToVertices[id] = vertex
       verticesToRules[vertex] = id
     }
-    for ((_, rules) in idb) {
+    for (id in idb) {
+      val rules = idb[id]
       for (rule in rules) {
         for (clause in rule.clauses) {
           if (clause.predicate in idb) {
-            val from = rulesToVertices[clause.predicate] ?: error("No vertex for ${clause.predicate}")
+            val from =
+                rulesToVertices[clause.predicate] ?: error("No vertex for ${clause.predicate}")
             val to = rulesToVertices[rule.predicate] ?: error("No vertex for ${rule.predicate}")
             addArc(from arcTo to)
           }
@@ -202,7 +180,7 @@ internal fun stratifiedEval(
   // Evaluate the different strata in order.
   var result = edb
   for (stratum in order) {
-    val rules = idb.filterKeys { it in stratum }
+    val rules = idb.filter(stratum)
     result = evalStrata(rules, result)
   }
   return result
