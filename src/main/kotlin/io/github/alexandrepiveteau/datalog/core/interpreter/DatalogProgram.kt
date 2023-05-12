@@ -46,12 +46,10 @@ private constructor(
   companion object {
 
     /** Returns a [DatalogProgram] which executes using naive evaluation. */
-    fun naive(): DatalogProgram = DatalogProgram { context -> with(context) { ::naiveEval } }
+    fun naive(): DatalogProgram = DatalogProgram { with(it) { ::naiveEval } }
 
     /** Returns a [DatalogProgram] which executes using semi-naive evaluation. */
-    fun semiNaive(): DatalogProgram = DatalogProgram { context ->
-      with(context) { ::semiNaiveEval }
-    }
+    fun semiNaive(): DatalogProgram = DatalogProgram { with(it) { ::semiNaiveEval } }
   }
 }
 
