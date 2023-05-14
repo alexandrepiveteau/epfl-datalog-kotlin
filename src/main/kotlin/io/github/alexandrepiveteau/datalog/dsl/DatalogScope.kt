@@ -54,6 +54,7 @@ interface DatalogScope<T> {
    * set.
    *
    * @param predicate the [Predicate] to solve.
+   * @param arity the arity of the [Predicate] to solve.
    */
-  fun solve(predicate: Predicate<T>): Set<Term<T>>
+  fun solve(predicate: Predicate<T>, arity: Int): Set<Term<T>>
 }

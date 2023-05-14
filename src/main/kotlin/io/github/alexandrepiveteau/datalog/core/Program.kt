@@ -4,5 +4,5 @@ package io.github.alexandrepiveteau.datalog.core
 interface Program {
 
   /** Solves the given [Predicate] and returns an [Iterable] of [Fact]s that could be derived. */
-  fun solve(predicate: Predicate): Iterable<Fact>
+  fun solve(predicate: Predicate, arity: Int): Iterable<Fact>
 }

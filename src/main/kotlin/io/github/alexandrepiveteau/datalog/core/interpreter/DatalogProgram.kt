@@ -2,6 +2,9 @@ package io.github.alexandrepiveteau.datalog.core.interpreter
 
 import io.github.alexandrepiveteau.datalog.core.*
 import io.github.alexandrepiveteau.datalog.core.interpreter.algebra.Relation
+import io.github.alexandrepiveteau.datalog.core.interpreter.database.FactsDatabase
+import io.github.alexandrepiveteau.datalog.core.interpreter.database.PredicateWithArity
+import io.github.alexandrepiveteau.datalog.core.interpreter.database.RulesDatabase
 
 /**
  * An implementation of [Program] and [ProgramBuilder] which executes the rules with the naive
@@ -11,7 +14,7 @@ import io.github.alexandrepiveteau.datalog.core.interpreter.algebra.Relation
  */
 internal class DatalogProgram
 private constructor(
-    private val evalStrata: (Context) -> (IDB, EDB) -> EDB,
+    private val evalStrata: (Context) -> (RulesDatabase, FactsDatabase) -> FactsDatabase,
 ) : ProgramBuilder, Program {
 
   private var nextRelation = 0
@@ -36,10 +39,10 @@ private constructor(
 
   private fun context() = Context(sequence { for (i in 0 until nextConstant) yield(Atom(i)) })
 
-  override fun solve(predicate: Predicate): Iterable<Fact> {
+  override fun solve(predicate: Predicate, arity: Int): Iterable<Fact> {
     val (idb, edb) = partition(rules)
     val result = stratifiedEval(idb, edb, evalStrata(context()))
-    val facts = result[predicate] ?: return emptyList()
+    val facts = result[PredicateWithArity(predicate, arity)]
     return facts.mapToFacts(predicate).asIterable()
   }
 

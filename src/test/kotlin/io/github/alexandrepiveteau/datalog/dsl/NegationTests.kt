@@ -2,7 +2,7 @@ package io.github.alexandrepiveteau.datalog.dsl
 
 import kotlin.test.Test
 
-class NegationTest {
+class NegationTests {
 
   @Test
   fun `empty negated rule yields whole domain`() = program {
@@ -13,8 +13,8 @@ class NegationTest {
 
     b(x) += !a(x)
 
-    expect(a) {}
-    expect(b) {
+    expect(a, arity = 1) {}
+    expect(b, arity = 1) {
       add(listOf(1))
       add(listOf(2))
       add(listOf(3))
@@ -33,13 +33,13 @@ class NegationTest {
     tc(x, y) += tc(x, z) + e(z, y)
     ntc(x, y) += !tc(x, y)
 
-    expect(tc) {
+    expect(tc, arity = 2) {
       add(listOf(1, 2))
       add(listOf(2, 3))
       add(listOf(1, 3))
     }
 
-    expect(ntc) {
+    expect(ntc, arity = 2) {
       add(listOf(1, 1))
       add(listOf(2, 1))
       add(listOf(2, 2))

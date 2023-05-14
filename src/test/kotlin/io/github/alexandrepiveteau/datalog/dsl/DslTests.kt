@@ -2,9 +2,9 @@ package io.github.alexandrepiveteau.datalog.dsl
 
 import kotlin.test.Test
 
-class DslTest {
+class DslTests {
 
-  @Test fun `no rules yields no facts`() = program { expect(predicate()) {} }
+  @Test fun `no rules yields no facts`() = program { expect(predicate(), arity = 0) {} }
 
   @Test
   fun `no derivation rules yields original facts`() = program {
@@ -12,7 +12,7 @@ class DslTest {
     a(1) += empty
     a(2) += empty
 
-    expect(a) {
+    expect(a, arity = 1) {
       add(listOf(1))
       add(listOf(2))
     }
@@ -26,12 +26,12 @@ class DslTest {
     a(3) += empty
     b(4) += empty
 
-    expect(a) {
+    expect(a, arity = 1) {
       add(listOf(1))
       add(listOf(3))
     }
 
-    expect(b) {
+    expect(b, arity = 1) {
       add(listOf(2))
       add(listOf(4))
     }
@@ -44,7 +44,7 @@ class DslTest {
     a(1) += empty
     b(x) += a(x)
 
-    expect(b) { add(listOf(1)) }
+    expect(b, arity = 1) { add(listOf(1)) }
   }
 
   @Test
@@ -56,7 +56,7 @@ class DslTest {
     b(x) += a(x)
     c(x) += b(x)
 
-    expect(c) { add(listOf(1)) }
+    expect(c, arity = 1) { add(listOf(1)) }
   }
 
   @Test
@@ -70,7 +70,7 @@ class DslTest {
     tc(x, y) += e(x, y)
     tc(x, y) += tc(x, z) + e(z, y)
 
-    expect(tc) {
+    expect(tc, arity = 2) {
       add(listOf(1, 2))
       add(listOf(1, 3))
       add(listOf(2, 3))
@@ -94,7 +94,7 @@ class DslTest {
 
     r(x) += tc(1.asValue(), x)
 
-    expect(r) {
+    expect(r, arity = 1) {
       add(listOf(1))
       add(listOf(2))
       add(listOf(3))

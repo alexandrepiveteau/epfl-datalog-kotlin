@@ -1,10 +1,10 @@
 package io.github.alexandrepiveteau.datalog.dsl
 
 import io.github.alexandrepiveteau.datalog.core.Algorithm
-import io.github.alexandrepiveteau.datalog.core.Atom as CoreAtom
-import io.github.alexandrepiveteau.datalog.core.ProgramBuilder as CoreProgramBuilder
 import io.github.alexandrepiveteau.datalog.core.asAtomList
 import io.github.alexandrepiveteau.datalog.core.map
+import io.github.alexandrepiveteau.datalog.core.Atom as CoreAtom
+import io.github.alexandrepiveteau.datalog.core.ProgramBuilder as CoreProgramBuilder
 
 /**
  * Runs a Datalog program within the given [scope] and returns the result. The [scope] is a
@@ -71,10 +71,10 @@ private class Datalog<T>(algorithm: Algorithm) : DatalogScope<T> {
         }
   }
 
-  override fun solve(predicate: Predicate<T>): Set<Term<T>> {
+  override fun solve(predicate: Predicate<T>, arity: Int): Set<Term<T>> {
     return builder
         .build()
-        .solve(predicate.id)
+        .solve(predicate.id, arity)
         .asSequence()
         .map {
           Term(
