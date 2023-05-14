@@ -41,8 +41,9 @@ private constructor(
 
   override fun solve(predicate: Predicate, arity: Int): Iterable<Fact> {
     val (idb, edb) = partition(rules)
-    val result = stratifiedEval(idb, edb, evalStrata(context()))
-    val facts = result[PredicateWithArity(predicate, arity)]
+    val target = PredicateWithArity(predicate, arity)
+    val result = stratifiedEval(target, idb, edb, evalStrata(context()))
+    val facts = result[target]
     return facts.mapToFacts(predicate).asIterable()
   }
 

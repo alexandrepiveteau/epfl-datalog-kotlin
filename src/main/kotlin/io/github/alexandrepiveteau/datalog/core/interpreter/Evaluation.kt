@@ -5,13 +5,6 @@ import io.github.alexandrepiveteau.datalog.core.interpreter.algebra.*
 import io.github.alexandrepiveteau.datalog.core.interpreter.algebra.Column.Constant
 import io.github.alexandrepiveteau.datalog.core.interpreter.algebra.Column.Index
 import io.github.alexandrepiveteau.datalog.core.interpreter.database.*
-import io.github.alexandrepiveteau.graphs.Vertex
-import io.github.alexandrepiveteau.graphs.algorithms.stronglyConnectedComponentsKosaraju
-import io.github.alexandrepiveteau.graphs.algorithms.topologicalSort
-import io.github.alexandrepiveteau.graphs.arcTo
-import io.github.alexandrepiveteau.graphs.builder.buildDirectedGraph
-import io.github.alexandrepiveteau.graphs.forEach
-import io.github.alexandrepiveteau.graphs.toTypedArray
 
 /**
  * Returns the [Set] of all the indices of the variables in the [PredicateRule]. This is used to
@@ -207,63 +200,4 @@ internal fun Context.semiNaiveEval(idb: RulesDatabase, edb: FactsDatabase): Fact
   } while (delta.isNotEmpty())
 
   return rels
-}
-
-/**
- * [stratifiedEval] performs stratified evaluation of the rules, and returns the resulting
- * [FactsDatabase].
- *
- * @param idb the [RulesDatabase] to evaluate.
- * @param edb the [FactsDatabase] to evaluate.
- * @param evalStrata the evaluator to use for each stratum.
- * @return the resulting [FactsDatabase].
- */
-internal fun stratifiedEval(
-    idb: RulesDatabase,
-    edb: FactsDatabase,
-    evalStrata: (RulesDatabase, FactsDatabase) -> FactsDatabase,
-): FactsDatabase {
-  // 1. Compute the different strata using the rules.
-  // 2. Use a topological sort to order the strata for evaluation.
-  // 3. Evaluate each stratum using the evalStrata evaluator.
-  // 4. Return the union of all the strata.
-  val rulesToVertices = mutableMapOf<PredicateWithArity, Vertex>()
-  val verticesToRules = mutableMapOf<Vertex, PredicateWithArity>()
-  val graph = buildDirectedGraph {
-    for (id in idb) {
-      val vertex = addVertex()
-      rulesToVertices[id] = vertex
-      verticesToRules[vertex] = id
-    }
-    for (id in idb) {
-      val rules = idb[id]
-      for (rule in rules) {
-        for (clause in rule.clauses) {
-          val fromKey = PredicateWithArity(clause.predicate, clause.arity)
-          val toKey = PredicateWithArity(rule.predicate, rule.arity)
-          val from = rulesToVertices[fromKey] ?: error("No vertex for $fromKey")
-          val to = rulesToVertices[toKey] ?: error("No vertex for $toKey")
-          addArc(from arcTo to)
-        }
-      }
-    }
-  }
-  val (scc, map) = graph.stronglyConnectedComponentsKosaraju()
-  val strata = mutableMapOf<Vertex, MutableSet<PredicateWithArity>>()
-
-  map.forEach { v, component ->
-    val stratum = strata.getOrPut(component) { mutableSetOf() }
-    stratum.add(verticesToRules[v] ?: error("No rule for $v"))
-  }
-
-  val order =
-      scc.topologicalSort().toTypedArray().map { vertex -> strata[vertex] ?: error("No stratum") }
-
-  // Evaluate the different strata in order.
-  var result = edb
-  for (stratum in order) {
-    val rules = idb.filter(stratum)
-    result += evalStrata(rules, result)
-  }
-  return result
 }

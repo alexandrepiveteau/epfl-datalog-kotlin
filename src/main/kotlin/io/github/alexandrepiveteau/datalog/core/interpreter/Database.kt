@@ -17,16 +17,8 @@ internal fun partition(rules: Collection<PredicateRule>): Pair<RulesDatabase, Fa
     val predicate = PredicateWithArity(rule.predicate, rule.arity)
     if (rule.clauses.isEmpty()) {
       edbBuilder.add(predicate, rule.atoms)
-      idbBuilder.getOrPut(predicate) { mutableSetOf() }
     } else {
       idbBuilder.getOrPut(predicate) { mutableSetOf() } += rule
-      // TODO : We may not need to store the clauses here if we build the stratification graph
-      //        by starting from the final predicate we want to derive, and computing the set of
-      //        predicates that are required to derive it iteratively.
-      rule.clauses.forEach {
-        val clausePredicate = PredicateWithArity(it.predicate, it.arity)
-        idbBuilder.getOrPut(clausePredicate) { mutableSetOf() }
-      }
     }
   }
 
