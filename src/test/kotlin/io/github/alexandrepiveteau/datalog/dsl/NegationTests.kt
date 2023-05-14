@@ -23,6 +23,24 @@ class NegationTests {
   }
 
   @Test
+  fun `program without stratification does not throw if predicate computable`() = program {
+    constants(1, 2)
+    val (a, b, c) = predicates()
+    val (x) = variables()
+
+    // This cannot be stratified.
+    a(1) += empty
+    a(x) += !a(x)
+
+    // This can be stratified.
+    b(2) += empty
+    c(x) += !b(x)
+
+    // We expect the program to terminate successfully.
+    expect(c, arity = 1) { add(listOf(1)) }
+  }
+
+  @Test
   fun `empty negated rule yields whole domain`() = program {
     constants(1, 2, 3)
 
