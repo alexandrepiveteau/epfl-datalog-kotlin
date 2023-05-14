@@ -79,6 +79,23 @@ private fun stratify(
   }
 }
 
+/** Returns true if the [RulesDatabase] has a negative cycle, and false otherwise. */
+private fun List<Set<PredicateWithArity>>.hasNegativeCycle(rules: RulesDatabase): Boolean {
+  val seen = mutableSetOf<PredicateWithArity>()
+  for (stratum in this) {
+    for (predicate in stratum) {
+      for (rule in rules[predicate]) {
+        for (clause in rule.clauses) {
+          val other = PredicateWithArity(clause.predicate, clause.arity)
+          if (clause.negated && other !in seen) return true
+        }
+      }
+    }
+    seen.addAll(stratum)
+  }
+  return false
+}
+
 /**
  * [stratifiedEval] performs stratified evaluation of the rules, and returns the resulting
  * [FactsDatabase].
@@ -97,6 +114,7 @@ internal fun stratifiedEval(
 ): FactsDatabase {
   val dependencies = idb.dependencies(target)
   val order = stratify(dependencies, idb)
+  if (order.hasNegativeCycle(idb)) error("Unable to stratify the rules.")
 
   var result = edb
   for (stratum in order) {

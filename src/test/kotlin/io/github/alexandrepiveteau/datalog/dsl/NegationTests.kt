@@ -1,8 +1,26 @@
 package io.github.alexandrepiveteau.datalog.dsl
 
 import kotlin.test.Test
+import kotlin.test.assertFailsWith
 
 class NegationTests {
+
+  @Test
+  fun `program without stratification throws illegal state exception`() {
+    assertFailsWith<IllegalStateException> {
+      program {
+        constants(1, 2)
+        val (a) = predicates()
+        val (x) = variables()
+
+        a(1) += empty
+        a(x) += !a(x)
+
+        // This would loop forever if we didn't enforce stratification.
+        expect(a, arity = 1) {}
+      }
+    }
+  }
 
   @Test
   fun `empty negated rule yields whole domain`() = program {
