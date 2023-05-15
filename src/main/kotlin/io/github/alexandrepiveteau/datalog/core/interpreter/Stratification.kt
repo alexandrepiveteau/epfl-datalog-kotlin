@@ -79,21 +79,37 @@ private fun stratify(
   }
 }
 
-/** Returns true if the [RulesDatabase] has a negative cycle, and false otherwise. */
-private fun List<Set<PredicateWithArity>>.hasNegativeCycle(rules: RulesDatabase): Boolean {
+/**
+ * Returns true if the [RulesDatabase] has an invalid dependency, and false otherwise.
+ *
+ * @param rules the [RulesDatabase] to evaluate.
+ * @param invalid the predicate to use to determine if a dependency is invalid.
+ */
+private inline fun List<Set<PredicateWithArity>>.hasInvalidDependency(
+    rules: RulesDatabase,
+    invalid: (seen: Set<PredicateWithArity>, rule: PredicateRule) -> Boolean,
+): Boolean {
   val seen = mutableSetOf<PredicateWithArity>()
   for (stratum in this) {
     for (predicate in stratum) {
       for (rule in rules[predicate]) {
-        for (clause in rule.clauses) {
-          val other = PredicateWithArity(clause.predicate, clause.arity)
-          if (clause.negated && other !in seen) return true
-        }
+        if (invalid(seen, rule)) return true
       }
     }
     seen.addAll(stratum)
   }
   return false
+}
+
+/** Returns true if the [RulesDatabase] has a negative cycle, and false otherwise. */
+private fun List<Set<PredicateWithArity>>.hasNegativeCycle(rules: RulesDatabase): Boolean {
+  return hasInvalidDependency(rules) { seen, rule ->
+    for (clause in rule.clauses) {
+      val other = PredicateWithArity(clause.predicate, clause.arity)
+      if (clause.negated && other !in seen) return true
+    }
+    false
+  }
 }
 
 /**
