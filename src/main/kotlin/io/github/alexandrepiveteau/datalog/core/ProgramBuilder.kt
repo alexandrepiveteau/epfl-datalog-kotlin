@@ -47,9 +47,16 @@ interface ProgramBuilder {
 
 /**
  * Returns a [ProgramBuilder], which can be used to build a [Program] and obtain results from it.
+ *
+ * @param algorithm the [Algorithm] that should be used to compute the results.
+ * @param domain the [Domain] on which the results are computed.
  */
-fun ProgramBuilder(algorithm: Algorithm = Algorithm.Naive): ProgramBuilder =
-    when (algorithm) {
-      Algorithm.Naive -> DatalogProgram.naive()
-      Algorithm.SemiNaive -> DatalogProgram.semiNaive()
-    }
+fun ProgramBuilder(
+    algorithm: Algorithm = Algorithm.Naive,
+    domain: Domain,
+): ProgramBuilder {
+  return when (algorithm) {
+    Algorithm.Naive -> DatalogProgram.naive(domain)
+    Algorithm.SemiNaive -> DatalogProgram.semiNaive(domain)
+  }
+}

@@ -1,12 +1,14 @@
 package io.github.alexandrepiveteau.datalog.dsl
 
+import io.github.alexandrepiveteau.datalog.core.RuleBuilder
+
 /**
  * The scope in which Datalog programs are handled. The domain of the program is defined as the set
  * of values that appear in the rules or the facts, and automatically inferred from the program.
  *
- * @param T the type of the elements in the relations.
+ * @param T the type of the elements in the relations. Must be comparable.
  */
-interface DatalogScope<T> {
+interface DatalogScope<T : Comparable<T>> {
 
   /**
    * Returns some [Terms] which are guaranteed to be empty. This is useful when we want to create a
@@ -38,14 +40,26 @@ interface DatalogScope<T> {
   operator fun Predicate<T>.invoke(vararg atoms: Atom<T>) = Term(this, atoms.toList(), false)
   operator fun Term<T>.not() = copy(negated = !negated)
 
+  // Aggregation functions.
+
+  /** Returns an [Aggregate] to compute the maximum value of a column. */
+  fun max(same: Iterable<Variable<T>>, column: Variable<T>, result: Variable<T>): Aggregate<T> =
+      Aggregate(RuleBuilder.Aggregate.Max, same.toList(), column, result)
+
+  /** Returns an [Aggregate] to compute the minimum value of a column. */
+  fun min(same: Iterable<Variable<T>>, column: Variable<T>, result: Variable<T>): Aggregate<T> =
+      Aggregate(RuleBuilder.Aggregate.Min, same.toList(), column, result)
+
   // Terms operators.
   operator fun Term<T>.plus(term: Term<T>): Terms<T> = Terms(setOf(this, term))
   operator fun Term<T>.plus(terms: Terms<T>): Terms<T> = Terms(setOf(this) + terms.terms)
   operator fun Terms<T>.plus(term: Term<T>): Terms<T> = Terms(this.terms + term)
   operator fun Terms<T>.plus(terms: Terms<T>): Terms<T> = Terms(this.terms + terms.terms)
+  operator fun Term<T>.plus(aggregate: Aggregate<T>): Aggregation<T> = Aggregation(this, aggregate)
 
   // Rules operators.
   operator fun Term<T>.plusAssign(terms: Terms<T>)
+  operator fun Term<T>.plusAssign(aggregation: Aggregation<T>)
   operator fun Term<T>.plusAssign(term: Term<T>) = plusAssign(term + empty)
 
   /**
