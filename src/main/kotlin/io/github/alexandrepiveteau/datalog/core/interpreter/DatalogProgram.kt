@@ -14,6 +14,7 @@ import io.github.alexandrepiveteau.datalog.core.interpreter.database.RulesDataba
  */
 internal class DatalogProgram
 private constructor(
+    private val domain: Domain,
     private val evalStrata: (Context) -> (RulesDatabase, FactsDatabase) -> FactsDatabase,
 ) : ProgramBuilder, Program {
 
@@ -25,19 +26,19 @@ private constructor(
   override fun variable(): Atom = Atom(nextVariable--)
   override fun constant(): Atom = Atom(nextConstant++)
 
-  private val rules = mutableListOf<PredicateRule>()
+  private val rules = mutableListOf<Rule>()
 
   override fun rule(predicate: Predicate, atoms: AtomList, block: RuleBuilder.() -> Unit) {
-    val clauses = buildList {
-      val builder = RuleBuilder { r, a, n -> add(PredicateClause(r, a, n)) }
-      block(builder)
-    }
-    rules.add(PredicateRule(predicate, atoms, clauses))
+    rules.add(DatalogRuleBuilder().apply(block).toRule(predicate, atoms))
   }
 
   override fun build(): Program = this
 
-  private fun context() = Context(sequence { for (i in 0 until nextConstant) yield(Atom(i)) })
+  private fun context() =
+      Context(
+          atoms = sequence { for (i in 0 until nextConstant) yield(Atom(i)) },
+          domain = domain,
+      )
 
   override fun solve(predicate: Predicate, arity: Int): Iterable<Fact> {
     val (idb, edb) = partition(rules)
@@ -49,11 +50,23 @@ private constructor(
 
   companion object {
 
-    /** Returns a [DatalogProgram] which executes using naive evaluation. */
-    fun naive(): DatalogProgram = DatalogProgram { with(it) { ::naiveEval } }
+    /**
+     * Returns a [DatalogProgram] which executes using naive evaluation.
+     *
+     * @param domain the [Domain] on which the results are computed.
+     */
+    fun naive(
+        domain: Domain,
+    ): DatalogProgram = DatalogProgram(domain) { with(it) { ::naiveEval } }
 
-    /** Returns a [DatalogProgram] which executes using semi-naive evaluation. */
-    fun semiNaive(): DatalogProgram = DatalogProgram { with(it) { ::semiNaiveEval } }
+    /**
+     * Returns a [DatalogProgram] which executes using semi-naive evaluation.
+     *
+     * @param domain the [Domain] on which the results are computed.
+     */
+    fun semiNaive(
+        domain: Domain,
+    ): DatalogProgram = DatalogProgram(domain) { with(it) { ::semiNaiveEval } }
   }
 }
 
