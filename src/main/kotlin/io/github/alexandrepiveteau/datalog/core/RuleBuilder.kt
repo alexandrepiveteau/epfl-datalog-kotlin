@@ -7,13 +7,16 @@ package io.github.alexandrepiveteau.datalog.core
 interface RuleBuilder {
 
   /** An enumeration representing the different kinds of aggregates available. */
-  enum class Aggregate {
+  enum class Aggregate(private val merge: Domain.(Atom, Atom) -> Atom) {
 
     /** Returns the minimum value. */
-    Min,
+    Min(Domain::min),
 
     /** Returns the maximum value. */
-    Max,
+    Max(Domain::max);
+
+    /** Returns the result of the [combine] operation on the two [Atom]s. */
+    internal fun Domain.combine(a: Atom, b: Atom): Atom = merge(a, b)
   }
 
   /**

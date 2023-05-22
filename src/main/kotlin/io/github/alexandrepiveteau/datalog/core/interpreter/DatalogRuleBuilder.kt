@@ -5,7 +5,7 @@ import io.github.alexandrepiveteau.datalog.core.AtomList
 import io.github.alexandrepiveteau.datalog.core.Predicate
 import io.github.alexandrepiveteau.datalog.core.RuleBuilder
 
-/** An implementation of [RuleBuilder] which can be used to build [PredicateRule]s. */
+/** An implementation of [RuleBuilder] which can be used to build [CombinationRule]s. */
 internal class DatalogRuleBuilder : RuleBuilder {
 
   /** A predicate which has been stored. */
@@ -41,9 +41,8 @@ internal class DatalogRuleBuilder : RuleBuilder {
       operator: RuleBuilder.Aggregate,
       same: AtomList,
       column: Atom,
-      result: Atom
+      result: Atom,
   ) {
-    // TODO : Support this and produce appropriate rules.
     aggregates.add(StoredAggregate(operator, same, column, result))
   }
 
@@ -57,10 +56,39 @@ internal class DatalogRuleBuilder : RuleBuilder {
    * @param predicate the predicate of the head of the rule.
    * @param atoms the [AtomList] of the head of the rule.
    */
-  fun toRule(predicate: Predicate, atoms: AtomList): PredicateRule {
-    if (aggregates.isNotEmpty())
-        throw UnsupportedOperationException("Aggregates are not supported yet.")
-    val clauses = predicates.map { PredicateClause(it.predicate, it.atoms, it.negated) }
-    return PredicateRule(predicate, atoms, clauses)
+  fun toRule(predicate: Predicate, atoms: AtomList): Rule {
+    return if (aggregates.isEmpty()) {
+      toCombinationRule(predicate, atoms)
+    } else {
+      toAggregationRule(predicate, atoms)
+    }
+  }
+
+  /** @see toRule */
+  private fun toCombinationRule(predicate: Predicate, atoms: AtomList): CombinationRule {
+    require(aggregates.isEmpty()) { "Aggregates should be empty for combination rules." }
+    val clauses = predicates.map { Clause(it.predicate, it.atoms, it.negated) }
+    return CombinationRule(
+        predicate = predicate,
+        atoms = atoms,
+        clauses = clauses,
+    )
+  }
+
+  /** @see toRule */
+  private fun toAggregationRule(predicate: Predicate, atoms: AtomList): AggregationRule {
+    require(aggregates.size == 1) { "Aggregated rules should must have exactly one aggregate." }
+    require(predicates.size == 1) { "Aggregated rules should must have exactly one clause." }
+    val aggregate = aggregates.first()
+    val clause = predicates.first().let { Clause(it.predicate, it.atoms, it.negated) }
+    return AggregationRule(
+        predicate = predicate,
+        atoms = atoms,
+        clause = clause,
+        operator = aggregate.operator,
+        same = aggregate.same,
+        column = aggregate.column,
+        result = aggregate.result,
+    )
   }
 }

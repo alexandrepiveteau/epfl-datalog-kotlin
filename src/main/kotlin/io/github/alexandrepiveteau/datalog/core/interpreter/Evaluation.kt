@@ -7,7 +7,7 @@ import io.github.alexandrepiveteau.datalog.core.interpreter.algebra.Column.Index
 import io.github.alexandrepiveteau.datalog.core.interpreter.database.*
 
 /**
- * Returns the [Set] of all the indices of the variables in the [PredicateRule]. This is used to
+ * Returns the [Set] of all the indices of the variables in the [CombinationRule]. This is used to
  * generate the selection clauses.
  */
 private fun variableIndices(rule: AtomList): Set<List<Int>> {
@@ -19,8 +19,8 @@ private fun variableIndices(rule: AtomList): Set<List<Int>> {
 }
 
 /**
- * Returns the [List] of indices for constants in the [PredicateRule]. This is used to generate the
- * clauses that filter the constants.
+ * Returns the [List] of indices for constants in the [CombinationRule]. This is used to generate
+ * the clauses that filter the constants.
  */
 private fun constantIndices(rule: AtomList): List<Int> {
   val constants = mutableListOf<Int>()
@@ -60,12 +60,23 @@ private fun selection(rule: AtomList): Set<Set<Column>> {
  * [evalRule] takes a [Rule] and a list of [Relation]s, and evaluates it against the list of
  * [Relation]s, returning the values that could be derived as a new [Relation].
  *
- * The rule must have exactly one clause for each evaluated [Relation].
+ * The rule must have exactly one clause for each [Relation].
  *
  * @param rule the [Rule] to evaluate.
  * @param relations the [Relation]s to evaluate the rule against.
  */
 private fun Context.evalRule(rule: Rule, relations: List<Relation>): Relation {
+  return when (rule) {
+    is CombinationRule -> evalCombinationRule(rule, relations)
+    is AggregationRule -> evalAggregationRule(rule, relations.single())
+  }
+}
+
+/** @see evalRule */
+private fun Context.evalCombinationRule(
+    rule: CombinationRule,
+    relations: List<Relation>
+): Relation {
   require(rule.clauses.size == relations.size) { "Not the same number of relations and clauses." }
   // 1. Negate all the relations that are negated in the rule.
   // 2. Generate a concatenation of all atoms in the rule, after the join.
@@ -77,17 +88,43 @@ private fun Context.evalRule(rule: Rule, relations: List<Relation>): Relation {
   return negated.join().select(selection(concat)).project(projection(rule.atoms, concat))
 }
 
+/** @see evalRule */
+private fun Context.evalAggregationRule(
+    rule: AggregationRule,
+    relation: Relation,
+): Relation {
+  // 1. Negate the relation if the rule is negated.
+  // 2. Perform the aggregation.
+  val negated = if (rule.clause.negated) relation.negated() else relation
+  val projection =
+      rule.atoms.map { atom ->
+        when {
+          atom.isVariable && atom == rule.result -> AggregationColumn.Aggregate
+          atom.isVariable -> AggregationColumn.Column(Index(rule.clause.atoms.indexOf(atom)))
+          else -> AggregationColumn.Column(Constant(atom))
+        }
+      }
+  val same = rule.same.map { Index(rule.clause.atoms.indexOf(it)) }.toSet()
+  return negated.aggregate(
+      projection = projection,
+      same = same,
+      domain = domain,
+      aggregate = rule.operator,
+      index = Index(rule.clause.atoms.indexOf(rule.column)),
+  )
+}
+
 /**
- * [evalRuleIncremental] takes a [Rule] and two sets of [Relation]s, and evaluates them against the
- * list of [relations] and [incremental] relations, returning the values that could be derived as a
- * new [Relation].
+ * [evalRuleIncremental] takes a [CombinationRule] and two sets of [Relation]s, and evaluates them
+ * against the list of [relations] and [incremental] relations, returning the values that could be
+ * derived as a new [Relation].
  *
  * For each [incremental] relation, we evaluate the rule with all the [relations] relations and one
  * [incremental] relation. This is done by replacing the [incremental] relation with the [relations]
  * relation at the same index. We then take the union of all the results, and return the distinct
  * values.
  *
- * @param rule the [Rule] to evaluate.
+ * @param rule the [CombinationRule] to evaluate.
  * @param relations the base [Relation]s to evaluate the rule against.
  * @param incremental the delta [Relation]s to evaluate the rule against.
  */

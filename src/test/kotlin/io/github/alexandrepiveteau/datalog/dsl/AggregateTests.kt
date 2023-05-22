@@ -1,11 +1,9 @@
 package io.github.alexandrepiveteau.datalog.dsl
 
-import kotlin.test.Ignore
 import kotlin.test.Test
 
 class AggregateTests {
 
-  @Ignore
   @Test
   fun `maximum from column subset`() = program {
     val (p, q, r) = predicates()
@@ -15,8 +13,8 @@ class AggregateTests {
     q(1, 2, 3) += empty
     q(2, 1, 4) += empty
 
-    p(x, y) += q(x, y, v) + max(listOf(x), v, s)
-    r(x, y) += q(x, y, v) + max(listOf(y), v, s)
+    p(x, s) += q(x, y, v) + max(listOf(x), v, s)
+    r(y, s) += q(x, y, v) + max(listOf(y), v, s)
 
     expect(p, arity = 2) {
       add(listOf(1, 3))

@@ -25,9 +25,15 @@ private fun RulesDatabase.dependencies(target: PredicateWithArity): Set<Predicat
   while (queue.isNotEmpty()) {
     val predicate = queue.removeFirst()
     if (!visited.add(predicate)) continue
-    for (rule in this[predicate]) {
-      for (clause in rule.clauses) {
-        queue.add(PredicateWithArity(clause.predicate, clause.arity))
+    // TODO : Factorize this code.
+    for (rule in this[predicate]) when (rule) {
+      is CombinationRule -> {
+        for (clause in rule.clauses) {
+          queue.add(PredicateWithArity(clause.predicate, clause.arity))
+        }
+      }
+      is AggregationRule -> {
+        queue.add(PredicateWithArity(rule.clause.predicate, rule.clause.arity))
       }
     }
   }
@@ -55,8 +61,19 @@ private fun stratify(
       verticesToRules[vertex] = id
     }
     for (id in predicates) {
-      for (rule in database[id]) {
-        for (clause in rule.clauses) {
+      // TODO : Factorize this code.
+      for (rule in database[id]) when (rule) {
+        is CombinationRule -> {
+          for (clause in rule.clauses) {
+            val fromKey = PredicateWithArity(clause.predicate, clause.arity)
+            val toKey = PredicateWithArity(rule.predicate, rule.arity)
+            val from = rulesToVertices[fromKey] ?: error("No vertex for $fromKey")
+            val to = rulesToVertices[toKey] ?: error("No vertex for $toKey")
+            addArc(from arcTo to)
+          }
+        }
+        is AggregationRule -> {
+          val clause = rule.clause
           val fromKey = PredicateWithArity(clause.predicate, clause.arity)
           val toKey = PredicateWithArity(rule.predicate, rule.arity)
           val from = rulesToVertices[fromKey] ?: error("No vertex for $fromKey")
@@ -87,7 +104,7 @@ private fun stratify(
  */
 private inline fun List<Set<PredicateWithArity>>.hasInvalidDependency(
     rules: RulesDatabase,
-    invalid: (seen: Set<PredicateWithArity>, rule: PredicateRule) -> Boolean,
+    invalid: (seen: Set<PredicateWithArity>, rule: Rule) -> Boolean,
 ): Boolean {
   val seen = mutableSetOf<PredicateWithArity>()
   for (stratum in this) {
@@ -104,9 +121,19 @@ private inline fun List<Set<PredicateWithArity>>.hasInvalidDependency(
 /** Returns true if the [RulesDatabase] has a negative cycle, and false otherwise. */
 private fun List<Set<PredicateWithArity>>.hasNegativeCycle(rules: RulesDatabase): Boolean {
   return hasInvalidDependency(rules) { seen, rule ->
-    for (clause in rule.clauses) {
-      val other = PredicateWithArity(clause.predicate, clause.arity)
-      if (clause.negated && other !in seen) return true
+    // TODO : Factorize this code.
+    when (rule) {
+      is CombinationRule -> {
+        for (clause in rule.clauses) {
+          val other = PredicateWithArity(clause.predicate, clause.arity)
+          if (clause.negated && other !in seen) return true
+        }
+      }
+      is AggregationRule -> {
+        val clause = rule.clause
+        val other = PredicateWithArity(clause.predicate, clause.arity)
+        if (clause.negated && other !in seen) return true
+      }
     }
     false
   }

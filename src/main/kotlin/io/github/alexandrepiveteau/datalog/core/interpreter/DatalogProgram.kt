@@ -26,7 +26,7 @@ private constructor(
   override fun variable(): Atom = Atom(nextVariable--)
   override fun constant(): Atom = Atom(nextConstant++)
 
-  private val rules = mutableListOf<PredicateRule>()
+  private val rules = mutableListOf<Rule>()
 
   override fun rule(predicate: Predicate, atoms: AtomList, block: RuleBuilder.() -> Unit) {
     rules.add(DatalogRuleBuilder().apply(block).toRule(predicate, atoms))

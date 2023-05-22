@@ -1,6 +1,7 @@
 package io.github.alexandrepiveteau.datalog.core.interpreter.database
 
-import io.github.alexandrepiveteau.datalog.core.interpreter.PredicateRule
+import io.github.alexandrepiveteau.datalog.core.interpreter.CombinationRule
+import io.github.alexandrepiveteau.datalog.core.interpreter.Rule
 
 /**
  * An intentional database, with predicate derivation rules. Each set of rules is associated with a
@@ -12,8 +13,8 @@ internal interface RulesDatabase {
   /** Returns an [Iterator] with all keys in the [RulesDatabase]. */
   operator fun iterator(): Iterator<PredicateWithArity>
 
-  /** Returns the [Set] of [PredicateRule]s for the given [PredicateWithArity]. */
-  operator fun get(key: PredicateWithArity): Set<PredicateRule>
+  /** Returns the [Set] of [CombinationRule]s for the given [PredicateWithArity]. */
+  operator fun get(key: PredicateWithArity): Set<Rule>
 
   /**
    * Returns a new [RulesDatabase] with the same contents as this [RulesDatabase] for the given keys
@@ -29,12 +30,12 @@ internal interface RulesDatabase {
 }
 
 internal data class MapRulesDatabase(
-    private val map: Map<PredicateWithArity, Set<PredicateRule>>,
+    private val map: Map<PredicateWithArity, Set<Rule>>,
 ) : RulesDatabase {
 
   override fun iterator(): Iterator<PredicateWithArity> = map.keys.iterator()
 
-  override fun get(key: PredicateWithArity): Set<PredicateRule> = map[key] ?: emptySet()
+  override fun get(key: PredicateWithArity): Set<Rule> = map[key] ?: emptySet()
 
   override fun filter(
       keys: Collection<PredicateWithArity>,

@@ -13,6 +13,11 @@ interface AtomList {
   operator fun get(index: Int): Atom
 }
 
+fun AtomList.indexOf(atom: Atom): Int {
+  for (i in 0 until size) if (this[i] == atom) return i
+  return -1
+}
+
 inline fun AtomList.forEach(f: (Atom) -> Unit) {
   repeat(size) { f(this[it]) }
 }

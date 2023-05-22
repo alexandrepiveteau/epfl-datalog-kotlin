@@ -1,9 +1,8 @@
 package io.github.alexandrepiveteau.datalog.core.interpreter.algebra
 
-import io.github.alexandrepiveteau.datalog.core.Atom
-import io.github.alexandrepiveteau.datalog.core.AtomList
-import io.github.alexandrepiveteau.datalog.core.asAtomList
-import io.github.alexandrepiveteau.datalog.core.plus
+import io.github.alexandrepiveteau.datalog.core.*
+import io.github.alexandrepiveteau.datalog.core.RuleBuilder.Aggregate
+import io.github.alexandrepiveteau.datalog.core.interpreter.algebra.Column.Index
 
 /**
  * A [Relation] contains a set of tuples as [AtomList]s and has a certain arity.
@@ -54,7 +53,7 @@ internal inline fun Relation.forEach(f: (AtomList) -> Unit) = tuples.forEach(f)
 private fun AtomList.value(column: Column): Atom =
     when (column) {
       is Column.Constant -> column.value
-      is Column.Index -> this[column.index]
+      is Index -> this[column.index]
     }
 
 /**
@@ -134,18 +133,96 @@ internal operator fun Relation.minus(other: Relation): Relation {
  */
 internal fun Relation.project(projection: List<Column>): Relation {
   return buildRelation(projection.size) {
-    forEach { atom ->
-      yield(
-          projection
-              .map {
-                when (it) {
-                  is Column.Constant -> it.value
-                  is Column.Index -> atom[it.index]
-                }
-              }
-              .asAtomList(),
-      )
+    forEach { atom -> yield(projection.map { atom.value(it) }.asAtomList()) }
+  }
+}
+
+/**
+ * Returns the [value] of the [Atom] for the given [AggregationColumn], considering that the [index]
+ * is used for aggregation positions in the original [AtomList].
+ *
+ * @param column the [AggregationColumn] to get the value for.
+ * @param index the [Index] of the [AtomList] in the original relation.
+ */
+private fun AtomList.value(column: AggregationColumn, index: Index): Atom =
+    when (column) {
+      is AggregationColumn.Column -> value(column.column)
+      is AggregationColumn.Aggregate -> this[index.index]
     }
+
+/**
+ * Merges the [first] and [second] [AtomList] into a new [AtomList] with the given [aggregate] and
+ * [columns].
+ *
+ * The [columns] have already been applied, and should therefore be considered as the final columns
+ * of the resulting [AtomList]. Only the [AggregationColumn.Aggregate]s in the [columns] will be
+ * merged.
+ *
+ * @param first the first [AtomList] to merge.
+ * @param second the second [AtomList] to merge.
+ * @param aggregate the [Aggregate] to apply to the values in the same set.
+ * @param columns the [AggregationColumn]s to respect in the projected values.
+ * @return the [AtomList] resulting from the merge.
+ */
+private fun Domain.merge(
+    first: AtomList,
+    second: AtomList,
+    aggregate: Aggregate,
+    columns: List<AggregationColumn>,
+): AtomList {
+  return columns
+      .mapIndexed { index, column ->
+        val x = first[index]
+        val y = second[index]
+        when (column) {
+          is AggregationColumn.Column -> x
+          is AggregationColumn.Aggregate -> with(aggregate) { combine(x, y) }
+        }
+      }
+      .asAtomList()
+}
+
+/**
+ * Aggregates the given [Relation] into a new [Relation] with the given [projection].
+ *
+ * @param projection the [AggregationColumn]s to respect in the projected values.
+ * @param same the set of [Index] which serve as the key for the aggregation.
+ * @param domain the [Domain] of the [Relation].
+ * @param aggregate the [Aggregate] to apply to the values in the same set.
+ * @param index the [Index] of the column to aggregate.
+ */
+internal fun Relation.aggregate(
+    projection: List<AggregationColumn>,
+    same: Set<Index>,
+    domain: Domain,
+    aggregate: Aggregate,
+    index: Index,
+): Relation {
+  require(index !in same) { "The index must not be in the same set." }
+  require(
+      projection
+          .filterIsInstance<AggregationColumn.Column>()
+          .map { it.column }
+          .filterIsInstance<Index>()
+          .all { it in same },
+  ) {
+    "All columns in the projection must be in the same set."
+  }
+  return buildRelation(projection.size) {
+    // A map of the values in the same set to the values in the projection, for each row. Multiple
+    // rows will eventually map to the same value, and the aggregate function will be applied to
+    // merge them.
+    val result = mutableMapOf<AtomList, AtomList>()
+    forEach { atom ->
+      val key = same.map { atom[it.index] }.asAtomList()
+      val existing = result[key]
+      val value = projection.map { atom.value(it, index) }.asAtomList()
+      val updated =
+          if (existing == null) value
+          else with(domain) { merge(existing, value, aggregate, projection) }
+      result[key] = updated
+    }
+    result.forEach { (_, value) -> yield(value) }
   }
 }
 

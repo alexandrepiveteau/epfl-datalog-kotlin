@@ -2,7 +2,7 @@ package io.github.alexandrepiveteau.datalog.core
 
 /** An [Atom] is a constant or a variable. */
 @JvmInline
-value class Atom internal constructor(private val backing: Int) {
+value class Atom internal constructor(internal val backing: Int) {
 
   /** Returns true if this [Atom] is a constant. */
   val isConstant: Boolean
