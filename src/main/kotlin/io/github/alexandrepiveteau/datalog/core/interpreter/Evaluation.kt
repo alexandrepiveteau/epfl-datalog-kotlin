@@ -104,13 +104,14 @@ private fun Context.evalAggregationRule(
           else -> AggregationColumn.Column(Constant(atom))
         }
       }
-  val same = rule.same.map { Index(rule.clause.atoms.indexOf(it)) }.toSet()
+  val same = rule.same.mapTo(mutableSetOf()) { Index(rule.clause.atoms.indexOf(it)) }
+  val indices = rule.columns.mapTo(mutableSetOf()) { Index(rule.clause.atoms.indexOf(it)) }
   return negated.aggregate(
       projection = projection,
       same = same,
       domain = domain,
       aggregate = rule.operator,
-      index = Index(rule.clause.atoms.indexOf(rule.column)),
+      indices = indices,
   )
 }
 

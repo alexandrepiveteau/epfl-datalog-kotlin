@@ -42,17 +42,32 @@ interface DatalogScope<T> {
 
   // Aggregation functions.
 
-  /** Returns an [Aggregate] to compute the total value of a column. */
-  fun sum(same: Iterable<Variable<T>>, column: Variable<T>, result: Variable<T>): Aggregate<T> =
-      Aggregate(RuleBuilder.Aggregate.Sum, same.toList(), column, result)
+  /** Returns an [Aggregate] to compute the number of rows in a relation. */
+  fun count(
+      same: Iterable<Variable<T>>,
+      result: Variable<T>,
+  ): Aggregate<T> = Aggregate(RuleBuilder.Aggregate.Count, same, emptySet(), result)
 
-  /** Returns an [Aggregate] to compute the maximum value of a column. */
-  fun max(same: Iterable<Variable<T>>, column: Variable<T>, result: Variable<T>): Aggregate<T> =
-      Aggregate(RuleBuilder.Aggregate.Max, same.toList(), column, result)
+  /** Returns an [Aggregate] to compute the total value of some columns. */
+  fun sum(
+      same: Iterable<Variable<T>>,
+      columns: Iterable<Variable<T>>,
+      result: Variable<T>,
+  ): Aggregate<T> = Aggregate(RuleBuilder.Aggregate.Sum, same, columns, result)
 
-  /** Returns an [Aggregate] to compute the minimum value of a column. */
-  fun min(same: Iterable<Variable<T>>, column: Variable<T>, result: Variable<T>): Aggregate<T> =
-      Aggregate(RuleBuilder.Aggregate.Min, same.toList(), column, result)
+  /** Returns an [Aggregate] to compute the maximum value of some columns. */
+  fun max(
+      same: Iterable<Variable<T>>,
+      columns: Iterable<Variable<T>>,
+      result: Variable<T>,
+  ): Aggregate<T> = Aggregate(RuleBuilder.Aggregate.Max, same, columns, result)
+
+  /** Returns an [Aggregate] to compute the minimum value of some columns. */
+  fun min(
+      same: Iterable<Variable<T>>,
+      columns: Iterable<Variable<T>>,
+      result: Variable<T>,
+  ): Aggregate<T> = Aggregate(RuleBuilder.Aggregate.Min, same, columns, result)
 
   // Terms operators.
   operator fun Term<T>.plus(term: Term<T>): Terms<T> = Terms(setOf(this, term))

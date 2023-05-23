@@ -9,6 +9,9 @@ import io.github.alexandrepiveteau.datalog.dsl.domains.IntDomain
  */
 interface Domain<T> {
 
+  /** Returns a [T] representing the unit constant. */
+  fun unit(): T
+
   /** Returns the sum of the two [T]s. */
   fun sum(a: T, b: T): T
 

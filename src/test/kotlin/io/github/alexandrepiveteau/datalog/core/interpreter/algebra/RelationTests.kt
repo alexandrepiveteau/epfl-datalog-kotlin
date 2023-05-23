@@ -17,7 +17,7 @@ class RelationTests {
             same = emptySet(),
             domain = IntDomain,
             aggregate = RuleBuilder.Aggregate.Max,
-            index = Index(0),
+            indices = emptySet(),
         )
 
     assertEquals(0, aggregate.arity)

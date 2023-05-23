@@ -19,7 +19,7 @@ internal class DatalogRuleBuilder : RuleBuilder {
   private data class StoredAggregate(
       val operator: RuleBuilder.Aggregate,
       val same: AtomList,
-      val column: Atom,
+      val columns: AtomList,
       val result: Atom,
   )
 
@@ -40,10 +40,10 @@ internal class DatalogRuleBuilder : RuleBuilder {
   override fun aggregate(
       operator: RuleBuilder.Aggregate,
       same: AtomList,
-      column: Atom,
+      columns: AtomList,
       result: Atom,
   ) {
-    aggregates.add(StoredAggregate(operator, same, column, result))
+    aggregates.add(StoredAggregate(operator, same, columns, result))
   }
 
   /**
@@ -87,7 +87,7 @@ internal class DatalogRuleBuilder : RuleBuilder {
         clause = clause,
         operator = aggregate.operator,
         same = aggregate.same,
-        column = aggregate.column,
+        columns = aggregate.columns,
         result = aggregate.result,
     )
   }

@@ -12,7 +12,7 @@ class AggregateTests {
       program {
         val (p) = predicates()
         val (x, v, s) = variables()
-        p(x, s) += p(x, v) + max(listOf(x), v, result = s)
+        p(x, s) += p(x, v) + max(setOf(x), setOf(v), result = s)
 
         expect(p, 2) { /* Fails */}
       }
@@ -28,8 +28,8 @@ class AggregateTests {
     q(1, 2, 3) += empty
     q(2, 1, 4) += empty
 
-    p(x, s) += q(x, y, v) + max(listOf(x), v, result = s)
-    r(y, s) += q(x, y, v) + max(listOf(y), v, result = s)
+    p(x, s) += q(x, y, v) + max(setOf(x), setOf(v), result = s)
+    r(y, s) += q(x, y, v) + max(setOf(y), setOf(v), result = s)
 
     expect(p, arity = 2) {
       add(listOf(1, 3))
@@ -50,8 +50,8 @@ class AggregateTests {
     q(1, 2, 3) += empty
     q(2, 1, 4) += empty
 
-    p(x, s) += q(x, y, v) + min(listOf(x), v, result = s)
-    r(y, s) += q(x, y, v) + min(listOf(y), v, result = s)
+    p(x, s) += q(x, y, v) + min(setOf(x), setOf(v), result = s)
+    r(y, s) += q(x, y, v) + min(setOf(y), setOf(v), result = s)
 
     expect(p, arity = 2) {
       add(listOf(1, 2))
@@ -73,8 +73,41 @@ class AggregateTests {
     p(2) += empty
     p(3) += empty
 
-    r(s) += p(v) + sum(listOf(), v, result = s)
+    r(s) += p(v) + sum(emptySet(), setOf(v), result = s)
 
     expect(r, arity = 1) { add(listOf(6)) }
+  }
+
+  @Test
+  fun `count items without duplicates`() = program {
+    constants(1, 2, 3, 4, 5, 6, 7, 8, 9, 10)
+    val (p, r) = predicates()
+    val (v, s) = variables()
+
+    p(1) += empty
+    p(2) += empty
+    p(3) += empty
+
+    r(s) += p(v) + count(emptySet(), result = s)
+
+    expect(r, arity = 1) { add(listOf(3)) }
+  }
+
+  @Test
+  fun `count items with duplicates returns distinct count`() = program {
+    constants(1, 2, 3, 4, 5, 6, 7, 8, 9, 10)
+    val (p, r) = predicates()
+    val (v, s) = variables()
+
+    p(1) += empty
+    p(2) += empty
+    p(2) += empty
+    p(3) += empty
+    p(3) += empty
+    p(3) += empty
+
+    r(s) += p(v) + count(emptySet(), result = s)
+
+    expect(r, arity = 1) { add(listOf(3)) }
   }
 }
