@@ -37,6 +37,7 @@ Coming soon !
 + Supports various datalog features
     - Naive and semi-naive evaluation
     - Stratified negation
+    - Aggregations (`min`, `max`, `sum` and `count`)
 + Designed with both a high-level and low-level API
 + Works on Kotlin/JVM. Kotlin/JS and Kotlin/Native coming soon !
 
