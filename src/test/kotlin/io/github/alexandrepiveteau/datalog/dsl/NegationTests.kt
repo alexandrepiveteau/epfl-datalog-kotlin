@@ -1,5 +1,6 @@
 package io.github.alexandrepiveteau.datalog.dsl
 
+import io.github.alexandrepiveteau.datalog.core.NoStratificationException
 import kotlin.test.Test
 import kotlin.test.assertFailsWith
 
@@ -7,7 +8,7 @@ class NegationTests {
 
   @Test
   fun `program without stratification throws illegal state exception`() {
-    assertFailsWith<IllegalStateException> {
+    assertFailsWith<NoStratificationException> {
       program {
         constants(1, 2)
         val (a) = predicates()

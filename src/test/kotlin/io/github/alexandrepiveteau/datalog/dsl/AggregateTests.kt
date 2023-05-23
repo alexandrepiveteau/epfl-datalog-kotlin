@@ -1,5 +1,6 @@
 package io.github.alexandrepiveteau.datalog.dsl
 
+import io.github.alexandrepiveteau.datalog.core.NoStratificationException
 import kotlin.test.Test
 import kotlin.test.assertFailsWith
 
@@ -7,7 +8,7 @@ class AggregateTests {
 
   @Test
   fun `cyclic aggregate`() {
-    assertFailsWith<IllegalStateException> {
+    assertFailsWith<NoStratificationException> {
       program {
         val (p) = predicates()
         val (x, v, s) = variables()

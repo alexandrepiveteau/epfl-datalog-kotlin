@@ -1,5 +1,6 @@
 package io.github.alexandrepiveteau.datalog.core.interpreter
 
+import io.github.alexandrepiveteau.datalog.core.NoStratificationException
 import io.github.alexandrepiveteau.datalog.core.interpreter.database.FactsDatabase
 import io.github.alexandrepiveteau.datalog.core.interpreter.database.PredicateWithArity
 import io.github.alexandrepiveteau.datalog.core.interpreter.database.RulesDatabase
@@ -138,7 +139,7 @@ internal fun stratifiedEval(
 ): FactsDatabase {
   val dependencies = idb.dependencies(target)
   val order = stratify(dependencies, idb)
-  if (order.hasCycle(idb)) error("Unable to stratify the rules.")
+  if (order.hasCycle(idb)) throw NoStratificationException()
 
   var result = edb
   for (stratum in order) {
