@@ -28,7 +28,12 @@ inline fun AtomList.forEachIndexed(f: (Int, Atom) -> Unit) {
 
 operator fun AtomList.plus(other: AtomList): AtomList = (map { it } + other.map { it }).asAtomList()
 
-inline fun <T> AtomList.map(f: (Atom) -> T): List<T> = buildList { this@map.forEach { add(f(it)) } }
+inline fun <T, C : MutableCollection<in T>> AtomList.mapTo(destination: C, f: (Atom) -> T): C {
+  forEach { destination.add(f(it)) }
+  return destination
+}
+
+inline fun <T> AtomList.map(f: (Atom) -> T): List<T> = mapTo(ArrayList(size), f)
 
 fun AtomList.toList(): List<Atom> = map { it }
 

@@ -64,8 +64,8 @@ internal data class Clause(
  * @param clause the [Clause] that should be used to derive some new facts.
  * @param operator the [RuleBuilder.Aggregate] operator that should be used to aggregate the [same]
  *   atoms.
- * @param same the [AtomList] that should be used to aggregate the [column] atoms.
- * @param column the variable [Atom] that should be aggregated.
+ * @param same the [AtomList] that should be used to aggregate the [columns] atoms.
+ * @param columns the variable [Atom] that should be aggregated.
  * @param result the variable [Atom] that should be used to store the result of the aggregation.
  */
 internal data class AggregationRule(
@@ -74,7 +74,7 @@ internal data class AggregationRule(
     val clause: Clause,
     val operator: RuleBuilder.Aggregate,
     val same: AtomList,
-    val column: Atom,
+    val columns: AtomList,
     val result: Atom,
 ) : Rule {
 

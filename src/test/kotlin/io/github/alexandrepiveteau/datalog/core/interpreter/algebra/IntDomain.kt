@@ -16,6 +16,7 @@ internal object IntDomain : Domain {
     return atom.backing
   }
 
+  override fun unit(): Atom = get(1)
   override fun sum(a: Atom, b: Atom): Atom = get(get(a) + get(b))
   override fun max(a: Atom, b: Atom): Atom = get(maxOf(get(a), get(b)))
   override fun min(a: Atom, b: Atom): Atom = get(minOf(get(a), get(b)))

@@ -52,6 +52,8 @@ private class ActualDomain<T>(
     private val translation: Translation<T, CoreAtom>,
 ) : CoreDomain {
 
+  override fun unit(): CoreAtom = translation.getValue(domain.unit())
+
   override fun sum(
       a: CoreAtom,
       b: CoreAtom,
@@ -109,7 +111,7 @@ private class Datalog<T>(domain: Domain<T>, algorithm: Algorithm) : DatalogScope
           aggregate(
               a.aggregate,
               a.same.map { it.translate() }.asAtomList(),
-              a.column.translate(),
+              a.columns.map { it.translate() }.asAtomList(),
               a.result.translate(),
           )
         }

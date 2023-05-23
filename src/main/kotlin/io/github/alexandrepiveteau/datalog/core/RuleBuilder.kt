@@ -1,5 +1,7 @@
 package io.github.alexandrepiveteau.datalog.core
 
+import io.github.alexandrepiveteau.datalog.core.interpreter.algebra.Column
+
 /**
  * A [RuleBuilder] is a mutable builder for the body of a [Program] rule. It is used to define the
  * dependencies of a [Predicate] on other [Predicate]s.
@@ -7,19 +9,52 @@ package io.github.alexandrepiveteau.datalog.core
 interface RuleBuilder {
 
   /** An enumeration representing the different kinds of aggregates available. */
-  enum class Aggregate(private val merge: Domain.(Atom, Atom) -> Atom) {
+  enum class Aggregate(
+      private val t: Domain.(Set<Int>, AtomList) -> Atom,
+      private val c: Domain.(Atom, Atom) -> Atom
+  ) {
+
+    /** Returns the number of elements. */
+    Count(
+        t = { _, _ -> unit() },
+        c = Domain::sum,
+    ),
 
     /** Returns the sum. */
-    Sum(Domain::sum),
+    Sum(
+        t = { indices, atoms ->
+          atoms.toList().filterIndexed { index, _ -> index in indices }.reduce(::sum)
+        },
+        c = Domain::sum,
+    ),
 
     /** Returns the minimum value. */
-    Min(Domain::min),
+    Min(
+        t = { indices, atoms ->
+          atoms.toList().filterIndexed { index, _ -> index in indices }.reduce(::min)
+        },
+        c = Domain::min,
+    ),
 
     /** Returns the maximum value. */
-    Max(Domain::max);
+    Max(
+        t = { indices, atoms ->
+          atoms.toList().filterIndexed { index, _ -> index in indices }.reduce(::max)
+        },
+        c = Domain::max,
+    );
+
+    /** Returns the result of the [transform] operation on the [AtomList] of [Column.Index]es. */
+    internal fun Domain.transform(
+        indices: Set<Column.Index>,
+        atoms: AtomList,
+    ): Atom = t(indices.mapTo(mutableSetOf()) { it.index }, atoms)
 
     /** Returns the result of the [combine] operation on the two [Atom]s. */
-    internal fun Domain.combine(a: Atom, b: Atom): Atom = merge(a, b)
+    internal fun Domain.combine(
+        first: Atom,
+        second: Atom,
+    ): Atom = c(first, second)
   }
 
   /**
@@ -37,14 +72,14 @@ interface RuleBuilder {
    * [aggregate], a single [predicate] must have been added to the body of the rule. The [same]
    * [AtomList] must be a list of variables present in the other [predicate].
    *
-   * The values present in [column] in the other [predicate] will be aggregated, and the result will
-   * be stored in the variable [result], which may be used in the head of the rule.
+   * The values present in [columns] in the other [predicate] will be aggregated, and the result
+   * will be stored in the variable [result], which may be used in the head of the rule.
    *
    * @param operator the [Aggregate] operator to use.
    * @param same the [AtomList] of variables that are present in the other [predicate], and for
    *   which the values will be aggregated if they are equal.
-   * @param column the [Atom] of the other [predicate] whose values will be aggregated.
+   * @param columns the [AtomList] of the other [predicate] whose values will be aggregated.
    * @param result the [Atom] in which the result of the aggregation will be stored.
    */
-  fun aggregate(operator: Aggregate, same: AtomList, column: Atom, result: Atom)
+  fun aggregate(operator: Aggregate, same: AtomList, columns: AtomList, result: Atom)
 }

@@ -138,17 +138,31 @@ internal fun Relation.project(projection: List<Column>): Relation {
 }
 
 /**
- * Returns the [value] of the [Atom] for the given [AggregationColumn], considering that the [index]
- * is used for aggregation positions in the original [AtomList].
+ * Returns the [value] of the [Atom] for the given [AggregationColumn], considering that the
+ * [indices] is used for aggregation positions in the original [AtomList].
  *
  * @param column the [AggregationColumn] to get the value for.
- * @param index the [Index] of the [AtomList] in the original relation.
+ * @param indices the [Index]es of the [AtomList] in the original relation.
+ * @param aggregate the [Aggregate] to apply to the values in the same set.
+ * @param domain the [Domain] of the [AtomList]s.
  */
-private fun AtomList.value(column: AggregationColumn, index: Index): Atom =
-    when (column) {
-      is AggregationColumn.Column -> value(column.column)
-      is AggregationColumn.Aggregate -> this[index.index]
-    }
+private fun AtomList.value(
+    column: AggregationColumn,
+    indices: Set<Index>,
+    aggregate: Aggregate,
+    domain: Domain,
+): Atom {
+  return when (column) {
+    is AggregationColumn.Column -> value(column.column)
+    is AggregationColumn.Aggregate ->
+        toList()
+            .asSequence()
+            .mapIndexed { index, _ -> Index(index) }
+            .filter { it in indices }
+            .toSet()
+            .let { with(aggregate) { domain.transform(it, this@value) } }
+  }
+}
 
 /**
  * Merges the [first] and [second] [AtomList] into a new [AtomList] with the given [aggregate] and
@@ -189,16 +203,16 @@ private fun Domain.merge(
  * @param same the set of [Index] which serve as the key for the aggregation.
  * @param domain the [Domain] of the [Relation].
  * @param aggregate the [Aggregate] to apply to the values in the same set.
- * @param index the [Index] of the column to aggregate.
+ * @param indices the [Index] of the columns to aggregate.
  */
 internal fun Relation.aggregate(
     projection: List<AggregationColumn>,
     same: Set<Index>,
     domain: Domain,
     aggregate: Aggregate,
-    index: Index,
+    indices: Set<Index>,
 ): Relation {
-  require(index !in same) { "The index must not be in the same set." }
+  require(indices.all { it !in same }) { "The indices must not be in the same set." }
   require(
       projection
           .filterIsInstance<AggregationColumn.Column>()
@@ -216,7 +230,7 @@ internal fun Relation.aggregate(
     distinct().forEach { atom ->
       val key = same.map { atom[it.index] }.asAtomList()
       val existing = result[key]
-      val value = projection.map { atom.value(it, index) }.asAtomList()
+      val value = projection.map { atom.value(it, indices, aggregate, domain) }.asAtomList()
       val updated =
           if (existing == null) value
           else with(domain) { merge(existing, value, aggregate, projection) }

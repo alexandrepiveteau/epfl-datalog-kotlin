@@ -7,7 +7,7 @@ import io.github.alexandrepiveteau.datalog.core.Atom
  *
  * @see Relation.project
  */
-internal sealed interface Column {
+sealed interface Column {
 
   /** Projects a constant value for all rows. */
   data class Constant(val value: Atom) : Column
