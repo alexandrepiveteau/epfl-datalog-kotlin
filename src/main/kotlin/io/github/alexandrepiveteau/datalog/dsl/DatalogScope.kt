@@ -8,7 +8,7 @@ import io.github.alexandrepiveteau.datalog.core.RuleBuilder
  *
  * @param T the type of the elements in the relations. Must be comparable.
  */
-interface DatalogScope<T : Comparable<T>> {
+interface DatalogScope<T> {
 
   /**
    * Returns some [Terms] which are guaranteed to be empty. This is useful when we want to create a
@@ -41,6 +41,10 @@ interface DatalogScope<T : Comparable<T>> {
   operator fun Term<T>.not() = copy(negated = !negated)
 
   // Aggregation functions.
+
+  /** Returns an [Aggregate] to compute the total value of a column. */
+  fun sum(same: Iterable<Variable<T>>, column: Variable<T>, result: Variable<T>): Aggregate<T> =
+      Aggregate(RuleBuilder.Aggregate.Sum, same.toList(), column, result)
 
   /** Returns an [Aggregate] to compute the maximum value of a column. */
   fun max(same: Iterable<Variable<T>>, column: Variable<T>, result: Variable<T>): Aggregate<T> =

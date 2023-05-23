@@ -62,4 +62,19 @@ class AggregateTests {
       add(listOf(2, 3))
     }
   }
+
+  @Test
+  fun `sum from column`() = program {
+    constants(1, 2, 3, 4, 5, 6, 7, 8, 9, 10)
+    val (p, r) = predicates()
+    val (v, s) = variables()
+
+    p(1) += empty
+    p(2) += empty
+    p(3) += empty
+
+    r(s) += p(v) + sum(listOf(), v, result = s)
+
+    expect(r, arity = 1) { add(listOf(6)) }
+  }
 }
