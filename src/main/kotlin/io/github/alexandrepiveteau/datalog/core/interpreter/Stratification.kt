@@ -25,16 +25,8 @@ private fun RulesDatabase.dependencies(target: PredicateWithArity): Set<Predicat
   while (queue.isNotEmpty()) {
     val predicate = queue.removeFirst()
     if (!visited.add(predicate)) continue
-    // TODO : Factorize this code.
-    for (rule in this[predicate]) when (rule) {
-      is CombinationRule -> {
-        for (clause in rule.clauses) {
-          queue.add(PredicateWithArity(clause.predicate, clause.arity))
-        }
-      }
-      is AggregationRule -> {
-        queue.add(PredicateWithArity(rule.clause.predicate, rule.clause.arity))
-      }
+    for (rule in this[predicate]) {
+      for (clause in rule.clauses) queue.add(PredicateWithArity(clause.predicate, clause.arity))
     }
   }
   return visited
@@ -61,19 +53,8 @@ private fun stratify(
       verticesToRules[vertex] = id
     }
     for (id in predicates) {
-      // TODO : Factorize this code.
-      for (rule in database[id]) when (rule) {
-        is CombinationRule -> {
-          for (clause in rule.clauses) {
-            val fromKey = PredicateWithArity(clause.predicate, clause.arity)
-            val toKey = PredicateWithArity(rule.predicate, rule.arity)
-            val from = rulesToVertices[fromKey] ?: error("No vertex for $fromKey")
-            val to = rulesToVertices[toKey] ?: error("No vertex for $toKey")
-            addArc(from arcTo to)
-          }
-        }
-        is AggregationRule -> {
-          val clause = rule.clause
+      for (rule in database[id]) {
+        for (clause in rule.clauses) {
           val fromKey = PredicateWithArity(clause.predicate, clause.arity)
           val toKey = PredicateWithArity(rule.predicate, rule.arity)
           val from = rulesToVertices[fromKey] ?: error("No vertex for $fromKey")
@@ -118,21 +99,21 @@ private inline fun List<Set<PredicateWithArity>>.hasInvalidDependency(
   return false
 }
 
-/** Returns true if the [RulesDatabase] has a negative cycle, and false otherwise. */
-private fun List<Set<PredicateWithArity>>.hasNegativeCycle(rules: RulesDatabase): Boolean {
+/** Returns true if the [RulesDatabase] has a cycle, and false otherwise. */
+private fun List<Set<PredicateWithArity>>.hasCycle(rules: RulesDatabase): Boolean {
   return hasInvalidDependency(rules) { seen, rule ->
-    // TODO : Factorize this code.
     when (rule) {
       is CombinationRule -> {
         for (clause in rule.clauses) {
+          // Cyclic dependencies are not allowed for negated clauses.
           val other = PredicateWithArity(clause.predicate, clause.arity)
           if (clause.negated && other !in seen) return true
         }
       }
       is AggregationRule -> {
-        val clause = rule.clause
-        val other = PredicateWithArity(clause.predicate, clause.arity)
-        if (clause.negated && other !in seen) return true
+        // Cyclic dependencies are not allowed for aggregation rules.
+        val predicate = PredicateWithArity(rule.clause.predicate, rule.clause.arity)
+        if (predicate !in seen) return true
       }
     }
     false
@@ -157,7 +138,7 @@ internal fun stratifiedEval(
 ): FactsDatabase {
   val dependencies = idb.dependencies(target)
   val order = stratify(dependencies, idb)
-  if (order.hasNegativeCycle(idb)) error("Unable to stratify the rules.")
+  if (order.hasCycle(idb)) error("Unable to stratify the rules.")
 
   var result = edb
   for (stratum in order) {
