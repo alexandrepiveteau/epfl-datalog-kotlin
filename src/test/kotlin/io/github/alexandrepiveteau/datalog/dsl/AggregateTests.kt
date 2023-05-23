@@ -1,8 +1,22 @@
 package io.github.alexandrepiveteau.datalog.dsl
 
 import kotlin.test.Test
+import kotlin.test.assertFailsWith
 
 class AggregateTests {
+
+  @Test
+  fun `cyclic aggregate`() {
+    assertFailsWith<IllegalStateException> {
+      program {
+        val (p) = predicates()
+        val (x, v, s) = variables()
+        p(x, s) += p(x, v) + max(listOf(x), v, result = s)
+
+        expect(p, 2) { /* Fails */}
+      }
+    }
+  }
 
   @Test
   fun `maximum from column subset`() = program {
