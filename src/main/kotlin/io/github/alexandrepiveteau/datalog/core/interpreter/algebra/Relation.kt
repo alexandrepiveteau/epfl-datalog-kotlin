@@ -213,7 +213,7 @@ internal fun Relation.aggregate(
     // rows will eventually map to the same value, and the aggregate function will be applied to
     // merge them.
     val result = mutableMapOf<AtomList, AtomList>()
-    forEach { atom ->
+    distinct().forEach { atom ->
       val key = same.map { atom[it.index] }.asAtomList()
       val existing = result[key]
       val value = projection.map { atom.value(it, index) }.asAtomList()

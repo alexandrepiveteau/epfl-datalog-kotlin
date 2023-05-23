@@ -9,6 +9,9 @@ interface RuleBuilder {
   /** An enumeration representing the different kinds of aggregates available. */
   enum class Aggregate(private val merge: Domain.(Atom, Atom) -> Atom) {
 
+    /** Returns the sum. */
+    Sum(Domain::sum),
+
     /** Returns the minimum value. */
     Min(Domain::min),
 

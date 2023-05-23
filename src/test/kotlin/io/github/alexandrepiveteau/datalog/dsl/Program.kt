@@ -41,6 +41,6 @@ fun DatalogScope<Int>.expect(
  */
 fun program(scope: DatalogScope<Int>.() -> Unit) {
   for (algorithm in Algorithm.values()) {
-    datalog(algorithm, scope)
+    datalog(Domain.int(), algorithm, scope)
   }
 }

@@ -2,7 +2,7 @@ package io.github.alexandrepiveteau.datalog.dsl
 
 import io.github.alexandrepiveteau.datalog.core.Algorithm
 import io.github.alexandrepiveteau.datalog.core.Atom as CoreAtom
-import io.github.alexandrepiveteau.datalog.core.Domain
+import io.github.alexandrepiveteau.datalog.core.Domain as CoreDomain
 import io.github.alexandrepiveteau.datalog.core.ProgramBuilder as CoreProgramBuilder
 import io.github.alexandrepiveteau.datalog.core.asAtomList
 import io.github.alexandrepiveteau.datalog.core.map
@@ -17,16 +17,18 @@ import io.github.alexandrepiveteau.datalog.core.map
  * @param scope the scope in which the Datalog program is run.
  * @return the result of the Datalog program.
  */
-inline fun <T : Comparable<T>, R> datalog(
+inline fun <T, R> datalog(
+    domain: Domain<T>,
     algorithm: Algorithm = Algorithm.Naive,
     scope: DatalogScope<T>.() -> R
-): R = datalog<T>(algorithm).scope()
+): R = datalog(domain, algorithm).scope()
 
 /** Returns a [DatalogScope] instance, which can be used for the DSL. */
 @PublishedApi
-internal fun <T : Comparable<T>> datalog(
+internal fun <T> datalog(
+    domain: Domain<T>,
     algorithm: Algorithm,
-): DatalogScope<T> = Datalog(algorithm)
+): DatalogScope<T> = Datalog(domain, algorithm)
 
 // IMPLEMENTATION
 
@@ -45,24 +47,30 @@ private class Translation<K, V>(private val generator: () -> V) {
   }
 }
 
-private class ComparableDomain<T : Comparable<T>>(
+private class ActualDomain<T>(
+    private val domain: Domain<T>,
     private val translation: Translation<T, CoreAtom>,
-) : Domain {
+) : CoreDomain {
+
+  override fun sum(
+      a: CoreAtom,
+      b: CoreAtom,
+  ): CoreAtom = translation.getValue(domain.sum(translation.getKey(a), translation.getKey(b)))
 
   override fun max(
       a: CoreAtom,
       b: CoreAtom,
-  ): CoreAtom = translation.getValue(maxOf(translation.getKey(a), translation.getKey(b)))
+  ): CoreAtom = translation.getValue(domain.max(translation.getKey(a), translation.getKey(b)))
 
   override fun min(
       a: CoreAtom,
       b: CoreAtom,
-  ): CoreAtom = translation.getValue(minOf(translation.getKey(a), translation.getKey(b)))
+  ): CoreAtom = translation.getValue(domain.min(translation.getKey(a), translation.getKey(b)))
 }
 
-private class Datalog<T : Comparable<T>>(algorithm: Algorithm) : DatalogScope<T> {
+private class Datalog<T>(domain: Domain<T>, algorithm: Algorithm) : DatalogScope<T> {
   private val translation = Translation<T, CoreAtom>(this::constant)
-  private val builder = CoreProgramBuilder(algorithm, ComparableDomain(translation))
+  private val builder = CoreProgramBuilder(algorithm, ActualDomain(domain, translation))
 
   // This function is needed because of the cross-references between `translation` and `builder`.
   private fun constant(): CoreAtom = builder.constant()
