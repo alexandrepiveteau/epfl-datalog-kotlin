@@ -20,10 +20,7 @@ interface Domain<T> {
 
   /** Returns the minimum value of the two [T]s. */
   fun min(a: T, b: T): T
-
-  companion object {
-
-    /** Returns a [Domain] for [Int] values. */
-    fun int(): Domain<Int> = IntDomain
-  }
 }
+
+/** Returns the [Domain] for [Int] values. */
+fun Int.Companion.domain(): Domain<Int> = IntDomain
