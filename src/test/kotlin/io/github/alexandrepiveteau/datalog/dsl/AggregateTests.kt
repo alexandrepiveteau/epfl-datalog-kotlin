@@ -110,4 +110,27 @@ class AggregateTests {
 
     expect(r, arity = 1) { add(listOf(3)) }
   }
+
+  @Test
+  fun `count items by type returns distinct count`() = program {
+    constants(1, 2, 3, 4, 5, 6, 7, 8, 9, 10)
+    val (p, r) = predicates()
+    val (v, t, s) = variables()
+
+    p(1, 1) += empty
+    p(2, 1) += empty
+    p(2, 2) += empty
+    p(3, 1) += empty
+    p(3, 2) += empty
+    p(3, 3) += empty
+    p(3, 4) += empty
+
+    r(t, v) += p(t, v) + count(setOf(t), result = v)
+
+    expect(r, arity = 2) {
+      add(listOf(1, 1))
+      add(listOf(2, 2))
+      add(listOf(3, 4))
+    }
+  }
 }

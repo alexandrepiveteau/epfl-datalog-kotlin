@@ -2,7 +2,7 @@ package io.github.alexandrepiveteau.datalog.dsl
 
 import kotlin.test.Test
 
-class DslTests {
+class DerivationTests {
 
   @Test fun `no rules yields no facts`() = program { expect(predicate(), arity = 0) {} }
 
