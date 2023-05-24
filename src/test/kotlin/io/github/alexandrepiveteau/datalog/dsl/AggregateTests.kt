@@ -115,7 +115,7 @@ class AggregateTests {
   fun `count items by type returns distinct count`() = program {
     constants(1, 2, 3, 4, 5, 6, 7, 8, 9, 10)
     val (p, r) = predicates()
-    val (v, t, s) = variables()
+    val (v, t) = variables()
 
     p(1, 1) += empty
     p(2, 1) += empty
