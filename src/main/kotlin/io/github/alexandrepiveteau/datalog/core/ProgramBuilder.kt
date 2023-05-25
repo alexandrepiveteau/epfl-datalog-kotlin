@@ -1,6 +1,6 @@
 package io.github.alexandrepiveteau.datalog.core
 
-import io.github.alexandrepiveteau.datalog.core.interpreter.DatalogProgram
+import io.github.alexandrepiveteau.datalog.core.interpreter.DatalogProgramBuilder
 
 /**
  * A [ProgramBuilder] is a mutable builder for [Program] instances. It is used to build a [Program]
@@ -41,22 +41,22 @@ interface ProgramBuilder {
    */
   fun rule(predicate: Predicate, atoms: AtomList, block: RuleBuilder.() -> Unit)
 
-  /** Returns a [Program] built from the current builder, and on which results can be computed. */
-  fun build(): Program
+  /**
+   * Returns a [Program] built from the current builder, and on which results can be computed.
+   *
+   * @param domain the [Domain] on which the results are computed.
+   */
+  fun build(domain: Domain): Program
 }
 
 /**
  * Returns a [ProgramBuilder], which can be used to build a [Program] and obtain results from it.
  *
  * @param algorithm the [Algorithm] that should be used to compute the results.
- * @param domain the [Domain] on which the results are computed.
  */
-fun ProgramBuilder(
-    algorithm: Algorithm = Algorithm.Naive,
-    domain: Domain,
-): ProgramBuilder {
+fun ProgramBuilder(algorithm: Algorithm = Algorithm.Naive): ProgramBuilder {
   return when (algorithm) {
-    Algorithm.Naive -> DatalogProgram.naive(domain)
-    Algorithm.SemiNaive -> DatalogProgram.semiNaive(domain)
+    Algorithm.Naive -> DatalogProgramBuilder.naive()
+    Algorithm.SemiNaive -> DatalogProgramBuilder.semiNaive()
   }
 }

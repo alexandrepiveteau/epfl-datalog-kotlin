@@ -3,6 +3,7 @@ package io.github.alexandrepiveteau.datalog.dsl
 import io.github.alexandrepiveteau.datalog.core.Algorithm
 import io.github.alexandrepiveteau.datalog.core.Atom as CoreAtom
 import io.github.alexandrepiveteau.datalog.core.Domain as CoreDomain
+import io.github.alexandrepiveteau.datalog.core.NoSuchAtomException
 import io.github.alexandrepiveteau.datalog.core.ProgramBuilder as CoreProgramBuilder
 import io.github.alexandrepiveteau.datalog.core.asAtomList
 import io.github.alexandrepiveteau.datalog.core.map
@@ -32,18 +33,39 @@ internal fun <T> datalog(
 
 // IMPLEMENTATION
 
-private class Translation<K, V>(private val generator: () -> V) {
+/** An interface representing a translation table between two kinds of symbols. */
+private interface Translation<K, V> {
+
+  /** Returns the [V] corresponding to the given [K]. */
+  fun getValue(value: K): V
+
+  /** Returns the [K] corresponding to the given [V]. */
+  fun getKey(value: V): K
+
+  /** Returns a [Translation] that is immutable, and known not to generate symbols. */
+  fun toImmutableTranslation(): Translation<K, V>
+}
+
+private class GeneratorTranslation<K, V>(private val generator: () -> V) : Translation<K, V> {
   private val toMap = mutableMapOf<K, V>()
   private val fromMap = mutableMapOf<V, K>()
 
-  fun getValue(value: K): V {
+  override fun getValue(value: K): V {
     val id = toMap.getOrPut(value) { generator() }
     fromMap[id] = value
     return id
   }
 
-  fun getKey(value: V): K {
-    return fromMap[value] ?: error("Unknown value $value.")
+  override fun getKey(value: V): K {
+    return fromMap[value] ?: throw NoSuchAtomException()
+  }
+
+  override fun toImmutableTranslation(): Translation<K, V> {
+    return object : Translation<K, V> {
+      override fun getValue(value: K): V = toMap[value] ?: throw NoSuchAtomException()
+      override fun getKey(value: V): K = fromMap[value] ?: throw NoSuchAtomException()
+      override fun toImmutableTranslation(): Translation<K, V> = this
+    }
   }
 }
 
@@ -70,9 +92,9 @@ private class ActualDomain<T>(
   ): CoreAtom = translation.getValue(domain.min(translation.getKey(a), translation.getKey(b)))
 }
 
-private class Datalog<T>(domain: Domain<T>, algorithm: Algorithm) : DatalogScope<T> {
-  private val translation = Translation<T, CoreAtom>(this::constant)
-  private val builder = CoreProgramBuilder(algorithm, ActualDomain(domain, translation))
+private class Datalog<T>(private val domain: Domain<T>, algorithm: Algorithm) : DatalogScope<T> {
+  private val translation = GeneratorTranslation<T, CoreAtom>(this::constant)
+  private val builder = CoreProgramBuilder(algorithm)
 
   // This function is needed because of the cross-references between `translation` and `builder`.
   private fun constant(): CoreAtom = builder.constant()
@@ -90,7 +112,9 @@ private class Datalog<T>(domain: Domain<T>, algorithm: Algorithm) : DatalogScope
     }
   }
 
-  private fun CoreAtom.translate(): Atom<T> {
+  private fun CoreAtom.translate(
+      translation: Translation<T, CoreAtom> = this@Datalog.translation,
+  ): Atom<T> {
     return if (isConstant) Value(translation.getKey(this)) else Variable(this)
   }
 
@@ -118,14 +142,15 @@ private class Datalog<T>(domain: Domain<T>, algorithm: Algorithm) : DatalogScope
   }
 
   override fun solve(predicate: Predicate<T>, arity: Int): Set<Term<T>> {
+    val translation = translation.toImmutableTranslation()
     return builder
-        .build()
+        .build(ActualDomain(domain, translation))
         .solve(predicate.id, arity)
         .asSequence()
         .map {
           Term(
               predicate = Predicate(it.predicate),
-              atoms = it.atoms.map { atom -> atom.translate() },
+              atoms = it.atoms.map { atom -> atom.translate(translation) },
               negated = false,
           )
         }
