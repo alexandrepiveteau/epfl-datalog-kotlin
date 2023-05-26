@@ -1,15 +1,16 @@
 package io.github.alexandrepiveteau.datalog.dsl
 
 import io.github.alexandrepiveteau.datalog.core.Algorithm
+import io.github.alexandrepiveteau.datalog.core.ProgramBuilder as CoreProgramBuilder
 import io.github.alexandrepiveteau.datalog.core.rule.BodyLiteral
 import io.github.alexandrepiveteau.datalog.core.rule.Fact
 import io.github.alexandrepiveteau.datalog.core.rule.Predicate
-import io.github.alexandrepiveteau.datalog.core.ProgramBuilder as CoreProgramBuilder
 
 /**
  * Runs a Datalog program within the given [scope] and returns the result. The [scope] is a
  * [DatalogScope] receiver.
  *
+ * @param domain the [Domain] to use for solving the Datalog program.
  * @param algorithm the [Algorithm] to use for solving the Datalog program.
  * @param T the type of the elements in the relations.
  * @param R the return type of the Datalog program.

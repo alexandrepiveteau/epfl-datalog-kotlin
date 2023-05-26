@@ -10,4 +10,4 @@ import io.github.alexandrepiveteau.datalog.core.rule.BodyLiteral
  * @param term the term to aggregate.
  * @param aggregate the aggregation function to apply.
  */
-data class Aggregation<out T>(val term: BodyLiteral<T>, val aggregate: Aggregate<T>)
+data class Aggregation<out T>(val term: BodyLiteral<T>, val aggregate: Aggregate)

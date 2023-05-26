@@ -19,7 +19,7 @@ interface ProgramBuilder<T> {
   fun predicate(): Predicate
 
   /** Adds a new variable to the program. */
-  fun variable(): Variable<T>
+  fun variable(): Variable
 
   /**
    * Adds a new fact to the program, which is a rule without a body.

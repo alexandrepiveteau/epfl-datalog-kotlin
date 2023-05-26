@@ -26,7 +26,7 @@ internal class DatalogProgramBuilder<T>(
   private var nextVariable = 0
 
   override fun predicate(): Predicate = Predicate(nextRelation++)
-  override fun variable(): Variable<T> = Variable(nextVariable++)
+  override fun variable(): Variable = Variable(nextVariable++)
 
   private val rules = mutableSetOf<Rule<T>>()
 

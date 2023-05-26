@@ -103,8 +103,8 @@ interface RuleBuilder<in T> {
    */
   fun aggregate(
       operator: Aggregate,
-      same: Collection<Variable<T>>,
-      columns: Collection<Variable<T>>,
-      result: Variable<T>,
+      same: Collection<Variable>,
+      columns: Collection<Variable>,
+      result: Variable,
   )
 }
