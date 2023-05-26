@@ -46,6 +46,22 @@ internal class DatalogRuleBuilder<T> : RuleBuilder<T> {
     aggregates.add(StoredAggregate(operator, same, columns, result))
   }
 
+  private fun Rule<T>.variables(): Set<Variable<T>> {
+    val variables = mutableSetOf<Variable<T>>()
+    clauses.forEach { clause -> variables.addAll(clause.atoms.filterIsInstance<Variable<T>>()) }
+    when (this) {
+      is CombinationRule -> Unit
+      is AggregationRule -> variables.add(this.result)
+    }
+    return variables
+  }
+
+  private fun requireGrounding(rule: Rule<T>) {
+    val head = rule.atoms.filterIsInstance<Variable<T>>()
+    val body = rule.variables()
+    for (variable in head) require(variable in body)
+  }
+
   /**
    * Returns the [Rule] that has been built using the [predicate] and [aggregate] functions.
    * Depending on the clauses, the resulting rule might be an aggregate rule, or a regular predicate
@@ -57,11 +73,14 @@ internal class DatalogRuleBuilder<T> : RuleBuilder<T> {
    * @param atoms the [AtomList] of the head of the rule.
    */
   fun toRule(predicate: Predicate, atoms: List<Atom<T>>): Rule<T> {
-    return if (aggregates.isEmpty()) {
-      toCombinationRule(predicate, atoms)
-    } else {
-      toAggregationRule(predicate, atoms)
-    }
+    val rule =
+        if (aggregates.isEmpty()) {
+          toCombinationRule(predicate, atoms)
+        } else {
+          toAggregationRule(predicate, atoms)
+        }
+    requireGrounding(rule)
+    return rule
   }
 
   /** @see toRule */
