@@ -25,15 +25,11 @@ private fun <T> variableIndices(rule: List<Atom<T>>): Set<List<Int>> {
  * Returns the [List] of indices for constants in the [CombinationRule]. This is used to generate
  * the clauses that filter the constants.
  */
-private fun constantIndices(rule: List<Atom<*>>): List<Int> {
-  val constants = mutableListOf<Int>()
-  rule.forEachIndexed { index, atom ->
-    when (atom) {
-      is Variable -> Unit
-      is Value -> constants.add(index)
-    }
-  }
-  return constants
+private fun <T> constantIndices(rule: List<Atom<T>>): List<IndexedValue<Value<T>>> {
+  return rule
+      .withIndex()
+      .filter { it.value is Value }
+      .map { IndexedValue(it.index, it.value as Value<T>) }
 }
 
 /**
@@ -56,9 +52,8 @@ private fun <T> selection(rule: List<Atom<T>>): Set<Set<Column<T>>> {
     for (variable in variableIndices(rule)) {
       add(variable.mapTo(mutableSetOf()) { Index(it) })
     }
-    for (constant in constants) {
-      // TODO : Remove this unsafe cast somehow.
-      add(setOf(Constant(rule[constant] as Value<T>), Index(constant)))
+    for ((index, value) in constants) {
+      add(setOf(Constant(value), Index(index)))
     }
   }
 }
