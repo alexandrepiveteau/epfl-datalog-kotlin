@@ -45,7 +45,7 @@ internal class DatalogRuleBuilder<T> : RuleBuilder<T> {
     aggregates.add(StoredAggregate(operator, same, columns, result))
   }
 
-  private fun Rule<T>.variables(): Set<Variable> {
+  private fun Rule<T>.limited(): Set<Variable> {
     val variables = mutableSetOf<Variable>()
     body
         .asSequence()
@@ -60,9 +60,10 @@ internal class DatalogRuleBuilder<T> : RuleBuilder<T> {
 
   private fun requireGrounding(rule: Rule<T>) {
     val head = rule.head.atoms.filterIsInstance<Variable>()
-    val body = rule.variables()
-    for (variable in head) {
-      if (variable !in body) throw NotGroundedException()
+    val body = rule.body.flatMap { it.atoms }.filterIsInstance<Variable>()
+    val limited = rule.limited()
+    for (variable in head + body) {
+      if (variable !in limited) throw NotGroundedException()
     }
   }
 

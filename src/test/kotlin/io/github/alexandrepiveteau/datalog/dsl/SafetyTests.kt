@@ -41,4 +41,16 @@ class SafetyTests {
       }
     }
   }
+
+  @Test
+  fun `aggregate of negative rule is not safe`() {
+    assertFailsWith<NotGroundedException> {
+      program {
+        val (a, b) = predicates()
+        val (x, s) = variables()
+
+        a(s) += !b(x) + count(setOf(x), s)
+      }
+    }
+  }
 }
