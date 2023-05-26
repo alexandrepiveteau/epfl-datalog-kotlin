@@ -3,8 +3,6 @@ package io.github.alexandrepiveteau.datalog.dsl
 import io.github.alexandrepiveteau.datalog.core.Algorithm
 import io.github.alexandrepiveteau.datalog.core.Predicate
 import kotlin.test.assertEquals
-import kotlin.test.assertFalse
-import kotlin.test.assertTrue
 
 /**
  * A helper function that checks that the given [predicate] has values that match the values
@@ -26,11 +24,8 @@ fun DatalogScope<Int>.expect(
 ) {
   val expected = buildSet(values)
   val solution = solve(predicate, arity)
-  solution.forEach { assertEquals(predicate, it.predicate) } // all terms are in the right relation
-  solution.forEach { assertEquals(arity, it.atoms.size) } // all terms have the right arity
-  solution.forEach { assertFalse(it.negated) } // no terms are negated
-  solution.forEach { t -> assertTrue(t.atoms.none { it !is Value<Int> }) } // only values in result
-  val res = solution.map { t -> t.atoms.mapNotNull { it as? Value<Int> }.map { it.value } }.toSet()
+  solution.forEach { assertEquals(arity, it.size) } // all terms have the right arity
+  val res = solution.map { it.map { (v) -> v } }.toSet()
   assertEquals(expected, res)
 }
 

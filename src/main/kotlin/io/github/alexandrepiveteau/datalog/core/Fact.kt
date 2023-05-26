@@ -3,8 +3,8 @@ package io.github.alexandrepiveteau.datalog.core
 import io.github.alexandrepiveteau.datalog.dsl.Value
 
 /**
- * A [Fact] defines some constant atoms for a [Predicate].
+ * A [Fact] is a [List] of constant [Value]s.
  *
- * @param T the type of the elements in the relation.
+ * @param T the type of the values.
  */
-data class Fact<out T>(val predicate: Predicate, val atoms: List<Value<T>>)
+typealias Fact<T> = List<Value<T>>
