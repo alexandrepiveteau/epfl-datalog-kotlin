@@ -1,5 +1,6 @@
 package io.github.alexandrepiveteau.datalog.dsl
 
+import io.github.alexandrepiveteau.datalog.core.rule.Variable
 import io.github.alexandrepiveteau.datalog.core.RuleBuilder.Aggregate as CoreAggregate
 
 /**

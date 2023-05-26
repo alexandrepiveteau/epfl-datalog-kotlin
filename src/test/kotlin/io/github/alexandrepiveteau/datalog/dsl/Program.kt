@@ -1,7 +1,8 @@
 package io.github.alexandrepiveteau.datalog.dsl
 
 import io.github.alexandrepiveteau.datalog.core.Algorithm
-import io.github.alexandrepiveteau.datalog.core.Predicate
+import io.github.alexandrepiveteau.datalog.core.rule.Predicate
+import io.github.alexandrepiveteau.datalog.dsl.domains.domain
 import kotlin.test.assertEquals
 
 /**

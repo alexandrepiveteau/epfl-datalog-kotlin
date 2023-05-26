@@ -1,4 +1,4 @@
-package io.github.alexandrepiveteau.datalog.dsl
+package io.github.alexandrepiveteau.datalog.core.rule
 
 /**
  * A class representing a variable [Atom].

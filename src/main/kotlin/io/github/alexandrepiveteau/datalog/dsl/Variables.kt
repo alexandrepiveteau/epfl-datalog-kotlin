@@ -1,5 +1,7 @@
 package io.github.alexandrepiveteau.datalog.dsl
 
+import io.github.alexandrepiveteau.datalog.core.rule.Variable
+
 /** A [Variables] is a helper class which allows to create multiple [Variable]s at once. */
 fun interface Variables<out T> {
   operator fun invoke(): Variable<T>

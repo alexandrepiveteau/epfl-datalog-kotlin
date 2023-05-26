@@ -1,13 +1,12 @@
 package io.github.alexandrepiveteau.datalog.core.interpreter
 
-import io.github.alexandrepiveteau.datalog.core.Fact
 import io.github.alexandrepiveteau.datalog.core.interpreter.database.*
-import io.github.alexandrepiveteau.datalog.dsl.Value
+import io.github.alexandrepiveteau.datalog.core.rule.*
 
 private fun <T> requireFact(rule: CombinationRule<T>): Fact<T> {
-  require(rule.clauses.isEmpty()) { "Rule is not a fact." }
-  val result = rule.atoms.filterIsInstance<Value<T>>()
-  require(result.size == rule.arity) { "This fact has some unsafe variables." }
+  require(rule.body.isEmpty()) { "Rule is not a fact." }
+  val result = rule.head.atoms.filterIsInstance<Value<T>>()
+  require(result.size == rule.head.arity) { "This fact has some unsafe variables." }
   return result
 }
 
@@ -25,15 +24,15 @@ internal fun <T> partition(rules: Collection<Rule<T>>): Pair<RulesDatabase<T>, F
   for (rule in rules) {
     when (rule) {
       is CombinationRule -> {
-        val predicate = PredicateWithArity(rule.predicate, rule.arity)
-        if (rule.clauses.isEmpty()) {
+        val predicate = PredicateWithArity(rule.head.predicate, rule.head.arity)
+        if (rule.body.isEmpty()) {
           edbBuilder.add(predicate, requireFact(rule))
         } else {
           idbBuilder.getOrPut(predicate) { mutableSetOf() } += rule
         }
       }
       is AggregationRule -> {
-        val predicate = PredicateWithArity(rule.predicate, rule.arity)
+        val predicate = PredicateWithArity(rule.head.predicate, rule.head.arity)
         idbBuilder.getOrPut(predicate) { mutableSetOf() } += rule
       }
     }

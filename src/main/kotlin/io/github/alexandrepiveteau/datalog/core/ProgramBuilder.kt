@@ -1,10 +1,11 @@
 package io.github.alexandrepiveteau.datalog.core
 
 import io.github.alexandrepiveteau.datalog.core.interpreter.DatalogProgramBuilder
-import io.github.alexandrepiveteau.datalog.dsl.Atom
+import io.github.alexandrepiveteau.datalog.core.rule.Atom
+import io.github.alexandrepiveteau.datalog.core.rule.Fact
+import io.github.alexandrepiveteau.datalog.core.rule.Predicate
+import io.github.alexandrepiveteau.datalog.core.rule.Variable
 import io.github.alexandrepiveteau.datalog.dsl.Domain
-import io.github.alexandrepiveteau.datalog.dsl.Value
-import io.github.alexandrepiveteau.datalog.dsl.Variable
 
 /**
  * A [ProgramBuilder] is a mutable builder for [Program] instances. It is used to build a [Program]
@@ -21,12 +22,11 @@ interface ProgramBuilder<T> {
   fun variable(): Variable<T>
 
   /**
-   * Adds a new fact to the program, which is a rule without a body. The [atoms] must be constants.
+   * Adds a new fact to the program, which is a rule without a body.
    *
-   * @param predicate the [Predicate] to which the fact belongs.
-   * @param atoms the [List] of constants that make up the fact.
+   * @param fact the [Fact] to add to the program.
    */
-  fun fact(predicate: Predicate, atoms: Fact<T>) = rule(predicate, atoms) {}
+  fun fact(predicate: Predicate, fact: Fact<T>) = rule(predicate, fact) {}
 
   /**
    * Adds a new rule to the program, which is a [Predicate] with a body. The [atoms] must be

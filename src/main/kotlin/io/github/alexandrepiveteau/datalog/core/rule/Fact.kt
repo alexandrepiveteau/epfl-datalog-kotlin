@@ -1,6 +1,4 @@
-package io.github.alexandrepiveteau.datalog.core
-
-import io.github.alexandrepiveteau.datalog.dsl.Value
+package io.github.alexandrepiveteau.datalog.core.rule
 
 /**
  * A [Fact] is a [List] of constant [Value]s.

@@ -1,6 +1,6 @@
 package io.github.alexandrepiveteau.datalog.core.interpreter.algebra
 
-import io.github.alexandrepiveteau.datalog.dsl.Value
+import io.github.alexandrepiveteau.datalog.core.rule.Value
 
 /**
  * The kind of outputs which are possible for a [Relation] projection.

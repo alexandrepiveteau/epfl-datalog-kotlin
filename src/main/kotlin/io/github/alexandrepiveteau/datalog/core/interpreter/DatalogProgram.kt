@@ -1,15 +1,12 @@
 package io.github.alexandrepiveteau.datalog.core.interpreter
 
-import io.github.alexandrepiveteau.datalog.core.Fact
-import io.github.alexandrepiveteau.datalog.core.Predicate
 import io.github.alexandrepiveteau.datalog.core.Program
 import io.github.alexandrepiveteau.datalog.core.interpreter.algebra.forEach
 import io.github.alexandrepiveteau.datalog.core.interpreter.database.FactsDatabase
 import io.github.alexandrepiveteau.datalog.core.interpreter.database.PredicateWithArity
 import io.github.alexandrepiveteau.datalog.core.interpreter.database.RulesDatabase
-import io.github.alexandrepiveteau.datalog.dsl.Atom
+import io.github.alexandrepiveteau.datalog.core.rule.*
 import io.github.alexandrepiveteau.datalog.dsl.Domain
-import io.github.alexandrepiveteau.datalog.dsl.Value
 
 private fun <T> List<Atom<T>>.constants(): Sequence<Value<T>> {
   return sequence {
@@ -24,8 +21,8 @@ private fun <T> List<Atom<T>>.constants(): Sequence<Value<T>> {
 
 private fun <T> Rule<T>.constants(): Sequence<Value<T>> {
   return sequence {
-    yieldAll(atoms.constants())
-    for (clause in clauses) {
+    yieldAll(head.atoms.constants())
+    for (clause in body) {
       yieldAll(clause.atoms.constants())
     }
   }

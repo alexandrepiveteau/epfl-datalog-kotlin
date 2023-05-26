@@ -1,7 +1,7 @@
 package io.github.alexandrepiveteau.datalog.core.interpreter.database
 
-import io.github.alexandrepiveteau.datalog.core.interpreter.CombinationRule
-import io.github.alexandrepiveteau.datalog.core.interpreter.Rule
+import io.github.alexandrepiveteau.datalog.core.rule.CombinationRule
+import io.github.alexandrepiveteau.datalog.core.rule.Rule
 
 /**
  * An intentional database, with predicate derivation rules. Each set of rules is associated with a
