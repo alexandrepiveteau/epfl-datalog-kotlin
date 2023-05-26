@@ -29,4 +29,16 @@ class SafetyTests {
       }
     }
   }
+
+  @Test
+  fun `rule with variable appearing only negative literal is not safe`() {
+    assertFailsWith<NotGroundedException> {
+      program {
+        val (a, b) = predicates()
+        val (x) = variables()
+
+        a(x) += !b(x)
+      }
+    }
+  }
 }

@@ -10,11 +10,12 @@ class NegationTests {
   fun `program without stratification throws illegal state exception`() {
     assertFailsWith<NoStratificationException> {
       program {
-        val (a) = predicates()
+        val (a, domain) = predicates()
         val (x) = variables()
 
+        domain(1) += empty
         a(1) += empty
-        a(x) += !a(x)
+        a(x) += !a(x) + domain(x)
 
         // This would loop forever if we didn't enforce stratification.
         expect(a, arity = 1) {}

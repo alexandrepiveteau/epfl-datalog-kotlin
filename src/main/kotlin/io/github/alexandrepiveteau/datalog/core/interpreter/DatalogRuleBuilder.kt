@@ -49,7 +49,10 @@ internal class DatalogRuleBuilder<T> : RuleBuilder<T> {
 
   private fun Rule<T>.variables(): Set<Variable<T>> {
     val variables = mutableSetOf<Variable<T>>()
-    clauses.forEach { clause -> variables.addAll(clause.atoms.filterIsInstance<Variable<T>>()) }
+    clauses
+        .asSequence()
+        .filter { !it.negated }
+        .forEach { clause -> variables.addAll(clause.atoms.filterIsInstance<Variable<T>>()) }
     when (this) {
       is CombinationRule -> Unit
       is AggregationRule -> variables.add(this.result)
