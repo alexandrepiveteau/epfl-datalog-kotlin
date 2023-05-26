@@ -129,4 +129,27 @@ class AggregateTests {
       add(listOf(3, 4))
     }
   }
+
+  @Test
+  fun `negation on aggregation returns proper values`() = program {
+    val (p, q, r, c) = predicates()
+    val (x, v, s) = variables()
+
+    p(1, 1) += empty
+    p(1, 2) += empty
+
+    q(1) += empty
+    q(2) += empty
+    q(3) += empty
+    q(4) += empty
+
+    r(s) += p(v, x) + sum(setOf(v), setOf(x), result = s)
+    c(x) += !r(x) + q(x)
+
+    expect(c, arity = 1) {
+      add(listOf(1))
+      add(listOf(2))
+      add(listOf(4))
+    }
+  }
 }
