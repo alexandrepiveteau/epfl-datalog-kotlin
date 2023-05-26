@@ -4,9 +4,7 @@ import io.github.alexandrepiveteau.datalog.core.interpreter.algebra.*
 import io.github.alexandrepiveteau.datalog.core.interpreter.algebra.Column.Constant
 import io.github.alexandrepiveteau.datalog.core.interpreter.algebra.Column.Index
 import io.github.alexandrepiveteau.datalog.core.interpreter.database.*
-import io.github.alexandrepiveteau.datalog.dsl.Atom
-import io.github.alexandrepiveteau.datalog.dsl.Value
-import io.github.alexandrepiveteau.datalog.dsl.Variable
+import io.github.alexandrepiveteau.datalog.core.rule.*
 
 /**
  * Returns the [Set] of all the indices of the variables in the [CombinationRule]. This is used to
@@ -86,15 +84,15 @@ private fun <T> Context<T>.evalCombinationRule(
     rule: CombinationRule<T>,
     relations: List<Relation<T>>
 ): Relation<T> {
-  require(rule.clauses.size == relations.size) { "Not the same number of relations and clauses." }
+  require(rule.body.size == relations.size) { "Not the same number of relations and clauses." }
   // 1. Negate all the relations that are negated in the rule.
   // 2. Generate a concatenation of all atoms in the rule, after the join.
   // 3. Join all the relations.
   // 4. Select the rows that match the constants and variables.
   // 5. Project the rows to the correct indices, and add constants to the projection.
-  val negated = relations.mapIndexed { idx, r -> if (rule.clauses[idx].negated) r.negated() else r }
-  val concat = rule.clauses.flatMap { it.atoms.toList() }
-  return negated.join().select(selection(concat)).project(projection(rule.atoms, concat))
+  val negated = relations.mapIndexed { idx, r -> if (rule.body[idx].negated) r.negated() else r }
+  val concat = rule.body.flatMap { it.atoms.toList() }
+  return negated.join().select(selection(concat)).project(projection(rule.head.atoms, concat))
 }
 
 /** @see evalRule */
@@ -106,7 +104,7 @@ private fun <T> Context<T>.evalAggregationRule(
   // 2. Perform the aggregation.
   val negated = if (rule.clause.negated) relation.negated() else relation
   val projection =
-      rule.atoms.map { atom ->
+      rule.head.atoms.map { atom ->
         when (atom) {
           is Variable ->
               if (atom == rule.result) AggregationColumn.Aggregate
@@ -144,11 +142,11 @@ private fun <T> Context<T>.evalRuleIncremental(
     relations: List<Relation<T>>,
     incremental: List<Relation<T>>,
 ): Relation<T> {
-  require(rule.clauses.size == relations.size) { "Not the same number of relations and clauses." }
-  require(rule.clauses.size == incremental.size) { "Not the same number of relations and clauses." }
-  var result = Relation.empty<T>(rule.arity)
-  for (i in 0 until rule.clauses.size) {
-    val args = List(rule.clauses.size) { index -> if (index == i) incremental[i] else relations[i] }
+  require(rule.body.size == relations.size) { "Not the same number of relations and clauses." }
+  require(rule.body.size == incremental.size) { "Not the same number of relations and clauses." }
+  var result = Relation.empty<T>(rule.head.arity)
+  for (i in 0 until rule.body.size) {
+    val args = List(rule.body.size) { index -> if (index == i) incremental[i] else relations[i] }
     result = result.union(evalRule(rule, args))
   }
   return result.distinct()
@@ -176,7 +174,7 @@ private fun <T> Context<T>.eval(
   var result = Relation.empty<T>(predicate.arity)
   val facts = base + derived
   for (rule in rules) {
-    val list = rule.clauses.map { facts[PredicateWithArity(it.predicate, it.arity)] }
+    val list = rule.body.map { facts[PredicateWithArity(it.predicate, it.arity)] }
     result = result.union(evalRule(rule, list))
   }
   return result.distinct()
@@ -205,8 +203,8 @@ private fun <T> Context<T>.evalIncremental(
   val factsBase = base + derived
   val factsDelta = base + delta // Negation needs base facts to be present in the delta.
   for (rule in rules) {
-    val baseList = rule.clauses.map { factsBase[PredicateWithArity(it.predicate, it.arity)] }
-    val deltaList = rule.clauses.map { factsDelta[PredicateWithArity(it.predicate, it.arity)] }
+    val baseList = rule.body.map { factsBase[PredicateWithArity(it.predicate, it.arity)] }
+    val deltaList = rule.body.map { factsDelta[PredicateWithArity(it.predicate, it.arity)] }
     result = result.union(evalRuleIncremental(rule, baseList, deltaList))
   }
   return result.distinct()

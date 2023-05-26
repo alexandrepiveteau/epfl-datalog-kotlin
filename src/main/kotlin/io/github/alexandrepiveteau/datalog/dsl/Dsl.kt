@@ -1,8 +1,9 @@
 package io.github.alexandrepiveteau.datalog.dsl
 
 import io.github.alexandrepiveteau.datalog.core.Algorithm
-import io.github.alexandrepiveteau.datalog.core.Fact
-import io.github.alexandrepiveteau.datalog.core.Predicate
+import io.github.alexandrepiveteau.datalog.core.rule.BodyLiteral
+import io.github.alexandrepiveteau.datalog.core.rule.Fact
+import io.github.alexandrepiveteau.datalog.core.rule.Predicate
 import io.github.alexandrepiveteau.datalog.core.ProgramBuilder as CoreProgramBuilder
 
 /**
@@ -38,7 +39,7 @@ private class Datalog<T>(domain: Domain<T>, algorithm: Algorithm) : DatalogScope
   override fun variable() = builder.variable()
   override fun predicate() = builder.predicate()
 
-  override fun Term<T>.plusAssign(terms: Terms<T>) {
+  override fun BodyLiteral<T>.plusAssign(terms: BodyLiterals<T>) {
     return builder.rule(predicate = predicate, atoms = atoms) {
       for ((relation, atoms, negated) in terms.terms) {
         predicate(relation, atoms, negated)
@@ -46,7 +47,7 @@ private class Datalog<T>(domain: Domain<T>, algorithm: Algorithm) : DatalogScope
     }
   }
 
-  override fun Term<T>.plusAssign(aggregation: Aggregation<T>) {
+  override fun BodyLiteral<T>.plusAssign(aggregation: Aggregation<T>) {
     return builder.rule(predicate = predicate, atoms = atoms) {
       val (p, a) = aggregation
       predicate(p.predicate, p.atoms, p.negated)

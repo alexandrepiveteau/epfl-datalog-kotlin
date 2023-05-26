@@ -1,8 +1,7 @@
 package io.github.alexandrepiveteau.datalog.dsl
 
-import io.github.alexandrepiveteau.datalog.core.Fact
-import io.github.alexandrepiveteau.datalog.core.Predicate
 import io.github.alexandrepiveteau.datalog.core.RuleBuilder
+import io.github.alexandrepiveteau.datalog.core.rule.*
 
 /**
  * The scope in which Datalog programs are handled. The domain of the program is defined as the set
@@ -13,11 +12,11 @@ import io.github.alexandrepiveteau.datalog.core.RuleBuilder
 interface DatalogScope<T> {
 
   /**
-   * Returns some [Terms] which are guaranteed to be empty. This is useful when we want to create a
-   * new rule with no terms on the right-hand side.
+   * Returns some [BodyLiterals] which are guaranteed to be empty. This is useful when we want to
+   * create a new rule with no terms on the right-hand side.
    */
-  val empty: Terms<Nothing>
-    get() = Terms(emptySet())
+  val empty: BodyLiterals<Nothing>
+    get() = BodyLiterals(emptySet())
 
   /** Returns a new [Variable] which is guaranteed to be unique within this [DatalogScope]. */
   fun variable(): Variable<T>
@@ -35,9 +34,9 @@ interface DatalogScope<T> {
   fun <R> R.asValue(): Value<R> = Value(this)
 
   // Relation to term operators.
-  operator fun Predicate.invoke(vararg atoms: T) = Term(this, atoms.map { Value(it) }, false)
-  operator fun Predicate.invoke(vararg atoms: Atom<T>) = Term(this, atoms.toList(), false)
-  operator fun Term<T>.not() = copy(negated = !negated)
+  operator fun Predicate.invoke(vararg atoms: T) = BodyLiteral(this, atoms.map { Value(it) }, false)
+  operator fun Predicate.invoke(vararg atoms: Atom<T>) = BodyLiteral(this, atoms.toList(), false)
+  operator fun BodyLiteral<T>.not() = copy(negated = !negated)
 
   // Aggregation functions.
 
@@ -69,16 +68,30 @@ interface DatalogScope<T> {
   ): Aggregate<T> = Aggregate(RuleBuilder.Aggregate.Min, same, columns, result)
 
   // Terms operators.
-  operator fun Term<T>.plus(term: Term<T>): Terms<T> = Terms(setOf(this, term))
-  operator fun Term<T>.plus(terms: Terms<T>): Terms<T> = Terms(setOf(this) + terms.terms)
-  operator fun Terms<T>.plus(term: Term<T>): Terms<T> = Terms(this.terms + term)
-  operator fun Terms<T>.plus(terms: Terms<T>): Terms<T> = Terms(this.terms + terms.terms)
-  operator fun Term<T>.plus(aggregate: Aggregate<T>): Aggregation<T> = Aggregation(this, aggregate)
+  operator fun BodyLiteral<T>.plus(
+      term: BodyLiteral<T>,
+  ): BodyLiterals<T> = BodyLiterals(setOf(this, term))
+
+  operator fun BodyLiteral<T>.plus(
+      terms: BodyLiterals<T>,
+  ): BodyLiterals<T> = BodyLiterals(setOf(this) + terms.terms)
+
+  operator fun BodyLiterals<T>.plus(
+      term: BodyLiteral<T>,
+  ): BodyLiterals<T> = BodyLiterals(this.terms + term)
+
+  operator fun BodyLiterals<T>.plus(
+      terms: BodyLiterals<T>,
+  ): BodyLiterals<T> = BodyLiterals(this.terms + terms.terms)
+
+  operator fun BodyLiteral<T>.plus(
+      aggregate: Aggregate<T>,
+  ): Aggregation<T> = Aggregation(this, aggregate)
 
   // Rules operators.
-  operator fun Term<T>.plusAssign(terms: Terms<T>)
-  operator fun Term<T>.plusAssign(aggregation: Aggregation<T>)
-  operator fun Term<T>.plusAssign(term: Term<T>) = plusAssign(term + empty)
+  operator fun BodyLiteral<T>.plusAssign(terms: BodyLiterals<T>)
+  operator fun BodyLiteral<T>.plusAssign(aggregation: Aggregation<T>)
+  operator fun BodyLiteral<T>.plusAssign(term: BodyLiteral<T>) = plusAssign(term + empty)
 
   /**
    * Derives a new [Set] of [Term] that are implied by the given [predicate] and the current set of

@@ -1,6 +1,6 @@
 package io.github.alexandrepiveteau.datalog.dsl
 
-import io.github.alexandrepiveteau.datalog.core.Predicate
+import io.github.alexandrepiveteau.datalog.core.rule.Predicate
 
 /** A [Predicates] is a helper class which allows to create multiple [Predicate]s at once. */
 fun interface Predicates {

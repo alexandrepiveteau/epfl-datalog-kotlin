@@ -1,14 +1,15 @@
 package io.github.alexandrepiveteau.datalog.core.interpreter
 
-import io.github.alexandrepiveteau.datalog.core.Predicate
 import io.github.alexandrepiveteau.datalog.core.Program
 import io.github.alexandrepiveteau.datalog.core.ProgramBuilder
 import io.github.alexandrepiveteau.datalog.core.RuleBuilder
 import io.github.alexandrepiveteau.datalog.core.interpreter.database.FactsDatabase
 import io.github.alexandrepiveteau.datalog.core.interpreter.database.RulesDatabase
-import io.github.alexandrepiveteau.datalog.dsl.Atom
+import io.github.alexandrepiveteau.datalog.core.rule.Atom
+import io.github.alexandrepiveteau.datalog.core.rule.Predicate
+import io.github.alexandrepiveteau.datalog.core.rule.Rule
+import io.github.alexandrepiveteau.datalog.core.rule.Variable
 import io.github.alexandrepiveteau.datalog.dsl.Domain
-import io.github.alexandrepiveteau.datalog.dsl.Variable
 
 /**
  * An implementation of [ProgramBuilder] which can be used to build a [Program].

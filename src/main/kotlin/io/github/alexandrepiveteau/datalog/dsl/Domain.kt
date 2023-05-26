@@ -1,6 +1,6 @@
 package io.github.alexandrepiveteau.datalog.dsl
 
-import io.github.alexandrepiveteau.datalog.dsl.domains.IntDomain
+import io.github.alexandrepiveteau.datalog.core.rule.Value
 
 /**
  * An interface representing information about the domain of constants in the program.
@@ -21,6 +21,3 @@ interface Domain<T> {
   /** Returns the minimum value of the two [T]s. */
   fun min(a: Value<T>, b: Value<T>): Value<T>
 }
-
-/** Returns the [Domain] for [Int] values. */
-fun Int.Companion.domain(): Domain<Int> = IntDomain

@@ -1,5 +1,8 @@
 package io.github.alexandrepiveteau.datalog.core
 
+import io.github.alexandrepiveteau.datalog.core.rule.Fact
+import io.github.alexandrepiveteau.datalog.core.rule.Predicate
+
 /**
  * A [Program] can be solved and generate some [Fact]s.
  *

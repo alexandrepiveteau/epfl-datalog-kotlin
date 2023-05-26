@@ -1,10 +1,10 @@
 package io.github.alexandrepiveteau.datalog.core.interpreter.algebra
 
-import io.github.alexandrepiveteau.datalog.core.Fact
 import io.github.alexandrepiveteau.datalog.core.RuleBuilder.Aggregate
 import io.github.alexandrepiveteau.datalog.core.interpreter.algebra.Column.Index
+import io.github.alexandrepiveteau.datalog.core.rule.Fact
+import io.github.alexandrepiveteau.datalog.core.rule.Value
 import io.github.alexandrepiveteau.datalog.dsl.Domain
-import io.github.alexandrepiveteau.datalog.dsl.Value
 
 /**
  * A [Relation] contains a set of tuples as [List]s of [Value]s and has a certain arity.

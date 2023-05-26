@@ -1,4 +1,4 @@
-package io.github.alexandrepiveteau.datalog.core
+package io.github.alexandrepiveteau.datalog.core.rule
 
 /** A [Predicate] defines a set of rules. */
 @JvmInline

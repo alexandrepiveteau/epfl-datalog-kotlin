@@ -1,10 +1,8 @@
 package io.github.alexandrepiveteau.datalog.core.interpreter
 
 import io.github.alexandrepiveteau.datalog.core.NotGroundedException
-import io.github.alexandrepiveteau.datalog.core.Predicate
 import io.github.alexandrepiveteau.datalog.core.RuleBuilder
-import io.github.alexandrepiveteau.datalog.dsl.Atom
-import io.github.alexandrepiveteau.datalog.dsl.Variable
+import io.github.alexandrepiveteau.datalog.core.rule.*
 
 /** An implementation of [RuleBuilder] which can be used to build [CombinationRule]s. */
 internal class DatalogRuleBuilder<T> : RuleBuilder<T> {
@@ -49,7 +47,7 @@ internal class DatalogRuleBuilder<T> : RuleBuilder<T> {
 
   private fun Rule<T>.variables(): Set<Variable<T>> {
     val variables = mutableSetOf<Variable<T>>()
-    clauses
+    body
         .asSequence()
         .filter { !it.negated }
         .forEach { clause -> variables.addAll(clause.atoms.filterIsInstance<Variable<T>>()) }
@@ -61,7 +59,7 @@ internal class DatalogRuleBuilder<T> : RuleBuilder<T> {
   }
 
   private fun requireGrounding(rule: Rule<T>) {
-    val head = rule.atoms.filterIsInstance<Variable<T>>()
+    val head = rule.head.atoms.filterIsInstance<Variable<T>>()
     val body = rule.variables()
     for (variable in head) {
       if (variable !in body) throw NotGroundedException()
@@ -76,7 +74,7 @@ internal class DatalogRuleBuilder<T> : RuleBuilder<T> {
    * If no valid rule can be built, an [IllegalStateException] will be thrown.
    *
    * @param predicate the predicate of the head of the rule.
-   * @param atoms the [AtomList] of the head of the rule.
+   * @param atoms the [List] of [Atom]s of the head of the rule.
    */
   fun toRule(predicate: Predicate, atoms: List<Atom<T>>): Rule<T> {
     val rule =
@@ -92,11 +90,10 @@ internal class DatalogRuleBuilder<T> : RuleBuilder<T> {
   /** @see toRule */
   private fun toCombinationRule(predicate: Predicate, atoms: List<Atom<T>>): CombinationRule<T> {
     require(aggregates.isEmpty()) { "Aggregates should be empty for combination rules." }
-    val clauses = predicates.map { Clause(it.predicate, it.atoms, it.negated) }
+    val clauses = predicates.map { BodyLiteral(it.predicate, it.atoms, it.negated) }
     return CombinationRule(
-        predicate = predicate,
-        atoms = atoms,
-        clauses = clauses,
+        head = HeadLiteral(predicate, atoms),
+        body = clauses,
     )
   }
 
@@ -105,10 +102,9 @@ internal class DatalogRuleBuilder<T> : RuleBuilder<T> {
     require(aggregates.size == 1) { "Aggregated rules should must have exactly one aggregate." }
     require(predicates.size == 1) { "Aggregated rules should must have exactly one clause." }
     val aggregate = aggregates.first()
-    val clause = predicates.first().let { Clause(it.predicate, it.atoms, it.negated) }
+    val clause = predicates.first().let { BodyLiteral(it.predicate, it.atoms, it.negated) }
     return AggregationRule(
-        predicate = predicate,
-        atoms = atoms,
+        head = HeadLiteral(predicate, atoms),
         clause = clause,
         operator = aggregate.operator,
         same = aggregate.same,

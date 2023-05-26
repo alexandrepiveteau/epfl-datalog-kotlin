@@ -4,6 +4,9 @@ import io.github.alexandrepiveteau.datalog.core.NoStratificationException
 import io.github.alexandrepiveteau.datalog.core.interpreter.database.FactsDatabase
 import io.github.alexandrepiveteau.datalog.core.interpreter.database.PredicateWithArity
 import io.github.alexandrepiveteau.datalog.core.interpreter.database.RulesDatabase
+import io.github.alexandrepiveteau.datalog.core.rule.AggregationRule
+import io.github.alexandrepiveteau.datalog.core.rule.CombinationRule
+import io.github.alexandrepiveteau.datalog.core.rule.Rule
 import io.github.alexandrepiveteau.graphs.Vertex
 import io.github.alexandrepiveteau.graphs.algorithms.stronglyConnectedComponentsKosaraju
 import io.github.alexandrepiveteau.graphs.algorithms.topologicalSort
@@ -27,7 +30,7 @@ private fun RulesDatabase<*>.dependencies(target: PredicateWithArity): Set<Predi
     val predicate = queue.removeFirst()
     if (!visited.add(predicate)) continue
     for (rule in this[predicate]) {
-      for (clause in rule.clauses) queue.add(PredicateWithArity(clause.predicate, clause.arity))
+      for (clause in rule.body) queue.add(PredicateWithArity(clause.predicate, clause.arity))
     }
   }
   return visited
@@ -55,9 +58,9 @@ private fun stratify(
     }
     for (id in predicates) {
       for (rule in database[id]) {
-        for (clause in rule.clauses) {
+        for (clause in rule.body) {
           val fromKey = PredicateWithArity(clause.predicate, clause.arity)
-          val toKey = PredicateWithArity(rule.predicate, rule.arity)
+          val toKey = PredicateWithArity(rule.head.predicate, rule.head.arity)
           val from = rulesToVertices[fromKey] ?: error("No vertex for $fromKey")
           val to = rulesToVertices[toKey] ?: error("No vertex for $toKey")
           addArc(from arcTo to)
@@ -105,7 +108,7 @@ private fun <T> List<Set<PredicateWithArity>>.hasCycle(rules: RulesDatabase<T>):
   return hasInvalidDependency(rules) { seen, rule ->
     when (rule) {
       is CombinationRule -> {
-        for (clause in rule.clauses) {
+        for (clause in rule.body) {
           // Cyclic dependencies are not allowed for negated clauses.
           val other = PredicateWithArity(clause.predicate, clause.arity)
           if (clause.negated && other !in seen) return true

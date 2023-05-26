@@ -1,5 +1,7 @@
 package io.github.alexandrepiveteau.datalog.dsl
 
+import io.github.alexandrepiveteau.datalog.core.rule.BodyLiteral
+
 /**
  * An [Aggregation] is the body of an aggregate rule. It contains a [Term] and an [Aggregate] to
  * apply on the term.
@@ -8,4 +10,4 @@ package io.github.alexandrepiveteau.datalog.dsl
  * @param term the term to aggregate.
  * @param aggregate the aggregation function to apply.
  */
-data class Aggregation<out T>(val term: Term<T>, val aggregate: Aggregate<T>)
+data class Aggregation<out T>(val term: BodyLiteral<T>, val aggregate: Aggregate<T>)

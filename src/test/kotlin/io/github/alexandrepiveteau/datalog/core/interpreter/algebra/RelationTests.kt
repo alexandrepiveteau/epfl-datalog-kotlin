@@ -1,7 +1,7 @@
 package io.github.alexandrepiveteau.datalog.core.interpreter.algebra
 
 import io.github.alexandrepiveteau.datalog.core.RuleBuilder
-import io.github.alexandrepiveteau.datalog.dsl.domain
+import io.github.alexandrepiveteau.datalog.dsl.domains.domain
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertTrue

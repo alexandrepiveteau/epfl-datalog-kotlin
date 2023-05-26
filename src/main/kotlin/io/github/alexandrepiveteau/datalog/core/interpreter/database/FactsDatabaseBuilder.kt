@@ -1,10 +1,10 @@
 package io.github.alexandrepiveteau.datalog.core.interpreter.database
 
-import io.github.alexandrepiveteau.datalog.core.Fact
 import io.github.alexandrepiveteau.datalog.core.interpreter.algebra.Relation
 import io.github.alexandrepiveteau.datalog.core.interpreter.algebra.distinct
 import io.github.alexandrepiveteau.datalog.core.interpreter.algebra.empty
 import io.github.alexandrepiveteau.datalog.core.interpreter.algebra.union
+import io.github.alexandrepiveteau.datalog.core.rule.Fact
 
 // TODO : Document this.
 internal interface FactsDatabaseBuilder<T> : FactsDatabaseBuilderScope<T> {
