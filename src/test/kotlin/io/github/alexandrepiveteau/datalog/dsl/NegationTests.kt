@@ -91,4 +91,27 @@ class NegationTests {
       add(listOf(3, 3))
     }
   }
+
+  @Test
+  fun `transitive closure complement`() = program {
+    val (r, v, t, tc) = predicates()
+    val (x, y, z) = variables()
+
+    // Set up the EDB
+    r(1, 2) += empty
+    r(2, 3) += empty
+    r(3, 4) += empty
+    r(4, 1) += empty
+
+    // P1
+    v(x) += r(x, y)
+    v(y) += r(x, y)
+    // P2
+    t(x, y) += r(x, y)
+    t(x, y) += t(x, z) + r(z, y)
+    // P3
+    tc(x, y) += v(x) + v(y) + !t(x, y)
+
+    expect(tc, arity = 2) {} // Yields an empty set.
+  }
 }
