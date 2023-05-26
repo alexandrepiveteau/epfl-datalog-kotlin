@@ -1,60 +1,82 @@
 package io.github.alexandrepiveteau.datalog.core
 
 import io.github.alexandrepiveteau.datalog.core.interpreter.algebra.Column
+import io.github.alexandrepiveteau.datalog.dsl.Atom
+import io.github.alexandrepiveteau.datalog.dsl.Domain
+import io.github.alexandrepiveteau.datalog.dsl.Value
+import io.github.alexandrepiveteau.datalog.dsl.Variable
 
 /**
  * A [RuleBuilder] is a mutable builder for the body of a [Program] rule. It is used to define the
  * dependencies of a [Predicate] on other [Predicate]s.
  */
-interface RuleBuilder {
+interface RuleBuilder<in T> {
 
   /** An enumeration representing the different kinds of aggregates available. */
-  enum class Aggregate(
-      private val t: Domain.(Set<Int>, AtomList) -> Atom,
-      private val c: Domain.(Atom, Atom) -> Atom
-  ) {
+  enum class Aggregate {
 
     /** Returns the number of elements. */
-    Count(
-        t = { _, _ -> unit() },
-        c = Domain::sum,
-    ),
+    Count {
+      override fun <T> Domain<T>.transform(
+          indices: Set<Column.Index>,
+          atoms: List<Value<T>>,
+      ) = unit()
+      override fun <T> Domain<T>.combine(
+          first: Value<T>,
+          second: Value<T>,
+      ): Value<T> = sum(first, second)
+    },
 
     /** Returns the sum. */
-    Sum(
-        t = { indices, atoms ->
-          atoms.toList().filterIndexed { index, _ -> index in indices }.reduce(::sum)
-        },
-        c = Domain::sum,
-    ),
+    Sum {
+      override fun <T> Domain<T>.transform(
+          indices: Set<Column.Index>,
+          atoms: List<Value<T>>,
+      ) = atoms.filterIndexed { index, _ -> Column.Index(index) in indices }.reduce(::sum)
+      override fun <T> Domain<T>.combine(
+          first: Value<T>,
+          second: Value<T>,
+      ) = sum(first, second)
+    },
 
     /** Returns the minimum value. */
-    Min(
-        t = { indices, atoms ->
-          atoms.toList().filterIndexed { index, _ -> index in indices }.reduce(::min)
-        },
-        c = Domain::min,
-    ),
+    Min {
+
+      override fun <T> Domain<T>.transform(
+          indices: Set<Column.Index>,
+          atoms: List<Value<T>>,
+      ) = atoms.filterIndexed { index, _ -> Column.Index(index) in indices }.reduce(::min)
+      override fun <T> Domain<T>.combine(
+          first: Value<T>,
+          second: Value<T>,
+      ) = min(first, second)
+    },
 
     /** Returns the maximum value. */
-    Max(
-        t = { indices, atoms ->
-          atoms.toList().filterIndexed { index, _ -> index in indices }.reduce(::max)
-        },
-        c = Domain::max,
-    );
+    Max {
+      override fun <T> Domain<T>.transform(
+          indices: Set<Column.Index>,
+          atoms: List<Value<T>>,
+      ) = atoms.filterIndexed { index, _ -> Column.Index(index) in indices }.reduce(::max)
+      override fun <T> Domain<T>.combine(
+          first: Value<T>,
+          second: Value<T>,
+      ) = max(first, second)
+    };
 
-    /** Returns the result of the [transform] operation on the [AtomList] of [Column.Index]es. */
-    internal fun Domain.transform(
+    /**
+     * Returns the result of the [transform] operation on the [List] of atoms of [Column.Index]es.
+     */
+    internal abstract fun <T> Domain<T>.transform(
         indices: Set<Column.Index>,
-        atoms: AtomList,
-    ): Atom = t(indices.mapTo(mutableSetOf()) { it.index }, atoms)
+        atoms: List<Value<T>>,
+    ): Value<T>
 
     /** Returns the result of the [combine] operation on the two [Atom]s. */
-    internal fun Domain.combine(
-        first: Atom,
-        second: Atom,
-    ): Atom = c(first, second)
+    internal abstract fun <T> Domain<T>.combine(
+        first: Value<T>,
+        second: Value<T>,
+    ): Value<T>
   }
 
   /**
@@ -62,24 +84,29 @@ interface RuleBuilder {
    * the rule is negated in the body.
    *
    * @param predicate the [Predicate] to which the rule belongs.
-   * @param atoms the [AtomList] of constants or variables that make up the rule.
+   * @param atoms the [List] of constants or variables that make up the rule.
    * @param negated true if the rule is negated in the body.
    */
-  fun predicate(predicate: Predicate, atoms: AtomList, negated: Boolean)
+  fun predicate(predicate: Predicate, atoms: List<Atom<T>>, negated: Boolean)
 
   /**
    * Performs an [aggregate] operation on the values of another [predicate]. In order to perform an
    * [aggregate], a single [predicate] must have been added to the body of the rule. The [same]
-   * [AtomList] must be a list of variables present in the other [predicate].
+   * [Collection] of variables must be a list of variables present in the other [predicate].
    *
    * The values present in [columns] in the other [predicate] will be aggregated, and the result
    * will be stored in the variable [result], which may be used in the head of the rule.
    *
    * @param operator the [Aggregate] operator to use.
-   * @param same the [AtomList] of variables that are present in the other [predicate], and for
-   *   which the values will be aggregated if they are equal.
-   * @param columns the [AtomList] of the other [predicate] whose values will be aggregated.
+   * @param same the [List] of variables that are present in the other [predicate], and for which
+   *   the values will be aggregated if they are equal.
+   * @param columns the [List] of variables the [predicate] whose values will be aggregated.
    * @param result the [Atom] in which the result of the aggregation will be stored.
    */
-  fun aggregate(operator: Aggregate, same: AtomList, columns: AtomList, result: Atom)
+  fun aggregate(
+      operator: Aggregate,
+      same: Collection<Variable<T>>,
+      columns: Collection<Variable<T>>,
+      result: Variable<T>,
+  )
 }

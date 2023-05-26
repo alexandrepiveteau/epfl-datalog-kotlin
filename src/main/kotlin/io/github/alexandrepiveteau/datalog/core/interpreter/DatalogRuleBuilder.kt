@@ -1,37 +1,37 @@
 package io.github.alexandrepiveteau.datalog.core.interpreter
 
-import io.github.alexandrepiveteau.datalog.core.Atom
-import io.github.alexandrepiveteau.datalog.core.AtomList
 import io.github.alexandrepiveteau.datalog.core.Predicate
 import io.github.alexandrepiveteau.datalog.core.RuleBuilder
+import io.github.alexandrepiveteau.datalog.dsl.Atom
+import io.github.alexandrepiveteau.datalog.dsl.Variable
 
 /** An implementation of [RuleBuilder] which can be used to build [CombinationRule]s. */
-internal class DatalogRuleBuilder : RuleBuilder {
+internal class DatalogRuleBuilder<T> : RuleBuilder<T> {
 
   /** A predicate which has been stored. */
-  private data class StoredPredicate(
+  private data class StoredPredicate<out T>(
       val predicate: Predicate,
-      val atoms: AtomList,
+      val atoms: List<Atom<T>>,
       val negated: Boolean,
   )
 
   /** An aggregate which has been stored. */
-  private data class StoredAggregate(
+  private data class StoredAggregate<out T>(
       val operator: RuleBuilder.Aggregate,
-      val same: AtomList,
-      val columns: AtomList,
-      val result: Atom,
+      val same: Collection<Variable<T>>,
+      val columns: Collection<Variable<T>>,
+      val result: Variable<T>,
   )
 
   /** The list of [StoredPredicate]s. */
-  private val predicates = mutableSetOf<StoredPredicate>()
+  private val predicates = mutableSetOf<StoredPredicate<T>>()
 
   /** The list of [StoredAggregate]. */
-  private val aggregates = mutableSetOf<StoredAggregate>()
+  private val aggregates = mutableSetOf<StoredAggregate<T>>()
 
   override fun predicate(
       predicate: Predicate,
-      atoms: AtomList,
+      atoms: List<Atom<T>>,
       negated: Boolean,
   ) {
     predicates.add(StoredPredicate(predicate, atoms, negated))
@@ -39,9 +39,9 @@ internal class DatalogRuleBuilder : RuleBuilder {
 
   override fun aggregate(
       operator: RuleBuilder.Aggregate,
-      same: AtomList,
-      columns: AtomList,
-      result: Atom,
+      same: Collection<Variable<T>>,
+      columns: Collection<Variable<T>>,
+      result: Variable<T>,
   ) {
     aggregates.add(StoredAggregate(operator, same, columns, result))
   }
@@ -56,7 +56,7 @@ internal class DatalogRuleBuilder : RuleBuilder {
    * @param predicate the predicate of the head of the rule.
    * @param atoms the [AtomList] of the head of the rule.
    */
-  fun toRule(predicate: Predicate, atoms: AtomList): Rule {
+  fun toRule(predicate: Predicate, atoms: List<Atom<T>>): Rule<T> {
     return if (aggregates.isEmpty()) {
       toCombinationRule(predicate, atoms)
     } else {
@@ -65,7 +65,7 @@ internal class DatalogRuleBuilder : RuleBuilder {
   }
 
   /** @see toRule */
-  private fun toCombinationRule(predicate: Predicate, atoms: AtomList): CombinationRule {
+  private fun toCombinationRule(predicate: Predicate, atoms: List<Atom<T>>): CombinationRule<T> {
     require(aggregates.isEmpty()) { "Aggregates should be empty for combination rules." }
     val clauses = predicates.map { Clause(it.predicate, it.atoms, it.negated) }
     return CombinationRule(
@@ -76,7 +76,7 @@ internal class DatalogRuleBuilder : RuleBuilder {
   }
 
   /** @see toRule */
-  private fun toAggregationRule(predicate: Predicate, atoms: AtomList): AggregationRule {
+  private fun toAggregationRule(predicate: Predicate, atoms: List<Atom<T>>): AggregationRule<T> {
     require(aggregates.size == 1) { "Aggregated rules should must have exactly one aggregate." }
     require(predicates.size == 1) { "Aggregated rules should must have exactly one clause." }
     val aggregate = aggregates.first()

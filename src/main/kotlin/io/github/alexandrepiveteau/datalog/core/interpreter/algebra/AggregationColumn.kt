@@ -7,11 +7,11 @@ import io.github.alexandrepiveteau.datalog.core.interpreter.algebra.Column as Co
  *
  * @see Relation.aggregate
  */
-internal sealed interface AggregationColumn {
+internal sealed interface AggregationColumn<out T> {
 
   /** Projects the aggregate value computed in the aggregation. */
-  object Aggregate : AggregationColumn
+  object Aggregate : AggregationColumn<Nothing>
 
   /** Projects a column for all rows. */
-  data class Column(val column: CoreColumn) : AggregationColumn
+  data class Column<out T>(val column: CoreColumn<T>) : AggregationColumn<T>
 }

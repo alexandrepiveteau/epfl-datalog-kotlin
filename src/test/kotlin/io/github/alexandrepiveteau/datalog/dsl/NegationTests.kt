@@ -10,7 +10,6 @@ class NegationTests {
   fun `program without stratification throws illegal state exception`() {
     assertFailsWith<NoStratificationException> {
       program {
-        constants(1, 2)
         val (a) = predicates()
         val (x) = variables()
 
@@ -25,17 +24,19 @@ class NegationTests {
 
   @Test
   fun `program without stratification does not throw if predicate computable`() = program {
-    constants(1, 2)
-    val (a, b, c) = predicates()
+    val (a, b, c, domain) = predicates()
     val (x) = variables()
+
+    domain(1) += empty
+    domain(2) += empty
 
     // This cannot be stratified.
     a(1) += empty
-    a(x) += !a(x)
+    a(x) += !a(x) + domain(x)
 
     // This can be stratified.
     b(2) += empty
-    c(x) += !b(x)
+    c(x) += !b(x) + domain(x)
 
     // We expect the program to terminate successfully.
     expect(c, arity = 1) { add(listOf(1)) }
@@ -43,12 +44,14 @@ class NegationTests {
 
   @Test
   fun `empty negated rule yields whole domain`() = program {
-    constants(1, 2, 3)
-
-    val (a, b) = predicates()
+    val (a, b, domain) = predicates()
     val (x) = variables()
 
-    b(x) += !a(x)
+    domain(1) += empty
+    domain(2) += empty
+    domain(3) += empty
+
+    b(x) += !a(x) + domain(x)
 
     expect(a, arity = 1) {}
     expect(b, arity = 1) {
@@ -60,15 +63,18 @@ class NegationTests {
 
   @Test
   fun `non-reachability in graph`() = program {
-    val (e, tc, ntc) = predicates()
+    val (e, tc, ntc, v) = predicates()
     val (x, y, z) = variables()
+
+    v(x) += e(x, y)
+    v(y) += e(x, y)
 
     e(1, 2) += empty
     e(2, 3) += empty
 
     tc(x, y) += e(x, y)
     tc(x, y) += tc(x, z) + e(z, y)
-    ntc(x, y) += !tc(x, y)
+    ntc(x, y) += !tc(x, y) + v(x) + v(y)
 
     expect(tc, arity = 2) {
       add(listOf(1, 2))

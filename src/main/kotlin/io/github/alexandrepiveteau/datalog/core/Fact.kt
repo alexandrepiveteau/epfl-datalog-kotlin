@@ -1,8 +1,10 @@
 package io.github.alexandrepiveteau.datalog.core
 
-/** A [Fact] defines some constant atoms for a [Predicate]. */
-data class Fact(val predicate: Predicate, val atoms: AtomList) {
-  init {
-    atoms.forEach { require(it.isConstant) { "Atoms in a fact must be constants." } }
-  }
-}
+import io.github.alexandrepiveteau.datalog.dsl.Value
+
+/**
+ * A [Fact] defines some constant atoms for a [Predicate].
+ *
+ * @param T the type of the elements in the relation.
+ */
+data class Fact<out T>(val predicate: Predicate, val atoms: List<Value<T>>)

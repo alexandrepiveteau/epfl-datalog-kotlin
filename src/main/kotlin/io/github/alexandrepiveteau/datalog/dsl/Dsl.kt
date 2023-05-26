@@ -1,12 +1,8 @@
 package io.github.alexandrepiveteau.datalog.dsl
 
 import io.github.alexandrepiveteau.datalog.core.Algorithm
-import io.github.alexandrepiveteau.datalog.core.Atom as CoreAtom
-import io.github.alexandrepiveteau.datalog.core.Domain as CoreDomain
-import io.github.alexandrepiveteau.datalog.core.NoSuchAtomException
+import io.github.alexandrepiveteau.datalog.core.Predicate
 import io.github.alexandrepiveteau.datalog.core.ProgramBuilder as CoreProgramBuilder
-import io.github.alexandrepiveteau.datalog.core.asAtomList
-import io.github.alexandrepiveteau.datalog.core.map
 
 /**
  * Runs a Datalog program within the given [scope] and returns the result. The [scope] is a
@@ -33,127 +29,36 @@ internal fun <T> datalog(
 
 // IMPLEMENTATION
 
-/** An interface representing a translation table between two kinds of symbols. */
-private interface Translation<K, V> {
-
-  /** Returns the [V] corresponding to the given [K]. */
-  fun getValue(value: K): V
-
-  /** Returns the [K] corresponding to the given [V]. */
-  fun getKey(value: V): K
-
-  /** Returns a [Translation] that is immutable, and known not to generate symbols. */
-  fun toImmutableTranslation(): Translation<K, V>
-}
-
-private class GeneratorTranslation<K, V>(private val generator: () -> V) : Translation<K, V> {
-  private val toMap = mutableMapOf<K, V>()
-  private val fromMap = mutableMapOf<V, K>()
-
-  override fun getValue(value: K): V {
-    val id = toMap.getOrPut(value) { generator() }
-    fromMap[id] = value
-    return id
-  }
-
-  override fun getKey(value: V): K {
-    return fromMap[value] ?: throw NoSuchAtomException()
-  }
-
-  override fun toImmutableTranslation(): Translation<K, V> {
-    return object : Translation<K, V> {
-      override fun getValue(value: K): V = toMap[value] ?: throw NoSuchAtomException()
-      override fun getKey(value: V): K = fromMap[value] ?: throw NoSuchAtomException()
-      override fun toImmutableTranslation(): Translation<K, V> = this
-    }
-  }
-}
-
-private class ActualDomain<T>(
-    private val domain: Domain<T>,
-    private val translation: Translation<T, CoreAtom>,
-) : CoreDomain {
-
-  override fun unit(): CoreAtom = translation.getValue(domain.unit())
-
-  override fun sum(
-      a: CoreAtom,
-      b: CoreAtom,
-  ): CoreAtom = translation.getValue(domain.sum(translation.getKey(a), translation.getKey(b)))
-
-  override fun max(
-      a: CoreAtom,
-      b: CoreAtom,
-  ): CoreAtom = translation.getValue(domain.max(translation.getKey(a), translation.getKey(b)))
-
-  override fun min(
-      a: CoreAtom,
-      b: CoreAtom,
-  ): CoreAtom = translation.getValue(domain.min(translation.getKey(a), translation.getKey(b)))
-}
-
-private class Datalog<T>(private val domain: Domain<T>, algorithm: Algorithm) : DatalogScope<T> {
-  private val translation = GeneratorTranslation<T, CoreAtom>(this::constant)
-  private val builder = CoreProgramBuilder(algorithm)
+private class Datalog<T>(domain: Domain<T>, algorithm: Algorithm) : DatalogScope<T> {
+  private val builder = CoreProgramBuilder(domain, algorithm)
 
   // This function is needed because of the cross-references between `translation` and `builder`.
-  private fun constant(): CoreAtom = builder.constant()
 
-  override fun constants(vararg values: T) {
-    for (constant in values) translation.getValue(constant)
-  }
-  override fun variable() = Variable<T>(builder.variable())
-  override fun predicate() = Predicate<T>(builder.predicate())
-
-  private fun Atom<T>.translate(): CoreAtom {
-    return when (this) {
-      is Value -> translation.getValue(this.value)
-      is Variable -> this.atom
-    }
-  }
-
-  private fun CoreAtom.translate(
-      translation: Translation<T, CoreAtom> = this@Datalog.translation,
-  ): Atom<T> {
-    return if (isConstant) Value(translation.getKey(this)) else Variable(this)
-  }
+  override fun variable() = builder.variable()
+  override fun predicate() = builder.predicate()
 
   override fun Term<T>.plusAssign(terms: Terms<T>) {
-    return builder.rule(
-        predicate = predicate.id, atoms = atoms.map { it.translate() }.asAtomList()) {
-          for ((relation, atoms, negated) in terms.terms) {
-            predicate(relation.id, atoms.map { it.translate() }.asAtomList(), negated)
-          }
-        }
+    return builder.rule(predicate = predicate, atoms = atoms) {
+      for ((relation, atoms, negated) in terms.terms) {
+        predicate(relation, atoms, negated)
+      }
+    }
   }
 
   override fun Term<T>.plusAssign(aggregation: Aggregation<T>) {
-    return builder.rule(
-        predicate = predicate.id, atoms = atoms.map { it.translate() }.asAtomList()) {
-          val (p, a) = aggregation
-          predicate(p.predicate.id, p.atoms.map { it.translate() }.asAtomList(), p.negated)
-          aggregate(
-              a.aggregate,
-              a.same.map { it.translate() }.asAtomList(),
-              a.columns.map { it.translate() }.asAtomList(),
-              a.result.translate(),
-          )
-        }
+    return builder.rule(predicate = predicate, atoms = atoms) {
+      val (p, a) = aggregation
+      predicate(p.predicate, p.atoms, p.negated)
+      aggregate(a.aggregate, a.same, a.columns, a.result)
+    }
   }
 
-  override fun solve(predicate: Predicate<T>, arity: Int): Set<Term<T>> {
-    val translation = translation.toImmutableTranslation()
+  override fun solve(predicate: Predicate, arity: Int): Set<Term<T>> {
     return builder
-        .build(ActualDomain(domain, translation))
-        .solve(predicate.id, arity)
+        .build()
+        .solve(predicate, arity)
         .asSequence()
-        .map {
-          Term(
-              predicate = Predicate(it.predicate),
-              atoms = it.atoms.map { atom -> atom.translate(translation) },
-              negated = false,
-          )
-        }
+        .map { Term(predicate = it.predicate, atoms = it.atoms, negated = false) }
         .toSet()
   }
 }

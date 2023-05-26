@@ -20,7 +20,7 @@ import io.github.alexandrepiveteau.graphs.toTypedArray
  * @param target the target [PredicateWithArity] to evaluate.
  * @return the [Set] of all [PredicateWithArity] which the [target] [PredicateWithArity] depends on.
  */
-private fun RulesDatabase.dependencies(target: PredicateWithArity): Set<PredicateWithArity> {
+private fun RulesDatabase<*>.dependencies(target: PredicateWithArity): Set<PredicateWithArity> {
   val visited = mutableSetOf<PredicateWithArity>()
   val queue = ArrayDeque<PredicateWithArity>().apply { add(target) }
   while (queue.isNotEmpty()) {
@@ -41,7 +41,7 @@ private fun RulesDatabase.dependencies(target: PredicateWithArity): Set<Predicat
  */
 private fun stratify(
     predicates: Set<PredicateWithArity>,
-    database: RulesDatabase,
+    database: RulesDatabase<*>,
 ): List<Set<PredicateWithArity>> {
   // 1. Compute the different strata using the rules.
   // 2. Use a topological sort to order the strata for evaluation.
@@ -84,9 +84,9 @@ private fun stratify(
  * @param rules the [RulesDatabase] to evaluate.
  * @param invalid the predicate to use to determine if a dependency is invalid.
  */
-private inline fun List<Set<PredicateWithArity>>.hasInvalidDependency(
-    rules: RulesDatabase,
-    invalid: (seen: Set<PredicateWithArity>, rule: Rule) -> Boolean,
+private inline fun <T> List<Set<PredicateWithArity>>.hasInvalidDependency(
+    rules: RulesDatabase<T>,
+    invalid: (seen: Set<PredicateWithArity>, rule: Rule<T>) -> Boolean,
 ): Boolean {
   val seen = mutableSetOf<PredicateWithArity>()
   for (stratum in this) {
@@ -101,7 +101,7 @@ private inline fun List<Set<PredicateWithArity>>.hasInvalidDependency(
 }
 
 /** Returns true if the [RulesDatabase] has a cycle, and false otherwise. */
-private fun List<Set<PredicateWithArity>>.hasCycle(rules: RulesDatabase): Boolean {
+private fun <T> List<Set<PredicateWithArity>>.hasCycle(rules: RulesDatabase<T>): Boolean {
   return hasInvalidDependency(rules) { seen, rule ->
     when (rule) {
       is CombinationRule -> {
@@ -131,12 +131,12 @@ private fun List<Set<PredicateWithArity>>.hasCycle(rules: RulesDatabase): Boolea
  * @param evalStrata the evaluator to use for each stratum.
  * @return the resulting [FactsDatabase].
  */
-internal fun stratifiedEval(
+internal fun <T> stratifiedEval(
     target: PredicateWithArity,
-    idb: RulesDatabase,
-    edb: FactsDatabase,
-    evalStrata: (RulesDatabase, FactsDatabase) -> FactsDatabase,
-): FactsDatabase {
+    idb: RulesDatabase<T>,
+    edb: FactsDatabase<T>,
+    evalStrata: (RulesDatabase<T>, FactsDatabase<T>) -> FactsDatabase<T>,
+): FactsDatabase<T> {
   val dependencies = idb.dependencies(target)
   val order = stratify(dependencies, idb)
   if (order.hasCycle(idb)) throw NoStratificationException()

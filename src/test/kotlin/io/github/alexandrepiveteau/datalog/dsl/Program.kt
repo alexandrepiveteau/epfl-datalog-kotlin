@@ -1,6 +1,7 @@
 package io.github.alexandrepiveteau.datalog.dsl
 
 import io.github.alexandrepiveteau.datalog.core.Algorithm
+import io.github.alexandrepiveteau.datalog.core.Predicate
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
 import kotlin.test.assertTrue
@@ -19,7 +20,7 @@ import kotlin.test.assertTrue
  * @param values a function that returns the expected values for the given [predicate].
  */
 fun DatalogScope<Int>.expect(
-    predicate: Predicate<Int>,
+    predicate: Predicate,
     arity: Int,
     values: MutableSet<List<Int>>.() -> Unit
 ) {

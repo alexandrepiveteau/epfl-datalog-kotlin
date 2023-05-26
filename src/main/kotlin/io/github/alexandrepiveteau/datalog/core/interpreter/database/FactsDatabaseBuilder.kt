@@ -1,34 +1,34 @@
 package io.github.alexandrepiveteau.datalog.core.interpreter.database
 
-import io.github.alexandrepiveteau.datalog.core.AtomList
 import io.github.alexandrepiveteau.datalog.core.interpreter.algebra.Relation
 import io.github.alexandrepiveteau.datalog.core.interpreter.algebra.distinct
 import io.github.alexandrepiveteau.datalog.core.interpreter.algebra.empty
 import io.github.alexandrepiveteau.datalog.core.interpreter.algebra.union
+import io.github.alexandrepiveteau.datalog.dsl.Value
 
 // TODO : Document this.
-internal interface FactsDatabaseBuilder : FactsDatabaseBuilderScope {
-  fun build(): FactsDatabase
+internal interface FactsDatabaseBuilder<T> : FactsDatabaseBuilderScope<T> {
+  fun build(): FactsDatabase<T>
 }
 
 // TODO : Document this.
-internal fun buildFactsDatabase(
-    builder: FactsDatabaseBuilderScope.() -> Unit,
-): FactsDatabase = MutableFactsDatabase.builder().apply(builder).build()
+internal fun <T> buildFactsDatabase(
+    builder: FactsDatabaseBuilderScope<T>.() -> Unit,
+): FactsDatabase<T> = MutableFactsDatabase.builder<T>().apply(builder).build()
 
 // TODO : Document this.
-internal fun MutableFactsDatabase.Companion.empty(): MutableFactsDatabase =
+internal fun <T> MutableFactsDatabase.Companion.empty(): MutableFactsDatabase<T> =
     MapMutableFactsDatabaseBuilder(mutableMapOf())
 
 // TODO : Document this.
-internal fun MutableFactsDatabase.Companion.builder(): FactsDatabaseBuilder {
-  return object : FactsDatabaseBuilder {
-    private val map = mutableMapOf<PredicateWithArity, MutableSet<AtomList>>()
-    override fun add(predicate: PredicateWithArity, fact: AtomList) {
+internal fun <T> MutableFactsDatabase.Companion.builder(): FactsDatabaseBuilder<T> {
+  return object : FactsDatabaseBuilder<T> {
+    private val map = mutableMapOf<PredicateWithArity, MutableSet<List<Value<T>>>>()
+    override fun add(predicate: PredicateWithArity, fact: List<Value<T>>) {
       if (predicate.arity != fact.size) throw IllegalArgumentException("Invalid arity")
       map.getOrPut(predicate) { mutableSetOf() }.add(fact)
     }
-    override fun build(): FactsDatabase =
+    override fun build(): FactsDatabase<T> =
         MapMutableFactsDatabaseBuilder(
             map.mapValuesTo(mutableMapOf()) { (k, v) -> Relation(k.arity, v) },
         )
@@ -36,15 +36,16 @@ internal fun MutableFactsDatabase.Companion.builder(): FactsDatabaseBuilder {
 }
 
 // TODO : Document this.
-private data class MapMutableFactsDatabaseBuilder(
-    private val map: MutableMap<PredicateWithArity, Relation>,
-) : MutableFactsDatabase {
+private data class MapMutableFactsDatabaseBuilder<T>(
+    private val map: MutableMap<PredicateWithArity, Relation<T>>,
+) : MutableFactsDatabase<T> {
 
-  override fun plusAssign(other: FactsDatabase) {
+  override fun plusAssign(other: FactsDatabase<T>) {
     for (predicate in other) map[predicate] = this[predicate].union(other[predicate]).distinct()
   }
 
-  override fun set(predicate: PredicateWithArity, relation: Relation) = map.set(predicate, relation)
+  override fun set(predicate: PredicateWithArity, relation: Relation<T>) =
+      map.set(predicate, relation)
 
   override fun iterator() = map.keys.iterator()
 
@@ -53,7 +54,7 @@ private data class MapMutableFactsDatabaseBuilder(
   ) = map[predicate] ?: Relation.empty(predicate.arity)
 
   override fun plus(
-      other: FactsDatabase,
+      other: FactsDatabase<T>,
   ) = toMutableFactDatabase().apply { plusAssign(other) }
 
   override fun toMutableFactDatabase() = MapMutableFactsDatabaseBuilder(map.toMutableMap())

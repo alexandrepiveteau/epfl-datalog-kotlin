@@ -1,11 +1,13 @@
 package io.github.alexandrepiveteau.datalog.dsl.domains
 
 import io.github.alexandrepiveteau.datalog.dsl.Domain
+import io.github.alexandrepiveteau.datalog.dsl.Value
 
 /** An implementation of [Domain] for [Int] values. */
 internal object IntDomain : Domain<Int> {
-  override fun unit(): Int = 1
-  override fun sum(a: Int, b: Int): Int = a + b
-  override fun max(a: Int, b: Int): Int = maxOf(a, b)
-  override fun min(a: Int, b: Int): Int = minOf(a, b)
+  private val Unit = Value(1)
+  override fun unit(): Value<Int> = Unit
+  override fun sum(a: Value<Int>, b: Value<Int>): Value<Int> = Value(a.value + b.value)
+  override fun max(a: Value<Int>, b: Value<Int>): Value<Int> = if (a.value > b.value) a else b
+  override fun min(a: Value<Int>, b: Value<Int>): Value<Int> = if (a.value < b.value) a else b
 }

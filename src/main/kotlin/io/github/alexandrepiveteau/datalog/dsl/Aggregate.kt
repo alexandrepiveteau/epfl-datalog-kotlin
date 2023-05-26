@@ -7,13 +7,13 @@ import io.github.alexandrepiveteau.datalog.core.RuleBuilder.Aggregate as CoreAgg
  *
  * @param T the type of the elements in the relations.
  * @param aggregate the aggregation function to use.
- * @param same the list of variables that must be equal.
- * @param columns the columns to aggregate.
+ * @param same the collection of variables that must be equal.
+ * @param columns the collection of columns to aggregate.
  * @param result the result of the aggregation.
  */
 data class Aggregate<out T>(
     val aggregate: CoreAggregate,
-    val same: Iterable<Variable<T>>,
-    val columns: Iterable<Variable<T>>,
+    val same: Collection<Variable<T>>,
+    val columns: Collection<Variable<T>>,
     val result: Variable<T>,
 )
