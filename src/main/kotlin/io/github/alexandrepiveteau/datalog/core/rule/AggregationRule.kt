@@ -18,9 +18,9 @@ data class AggregationRule<out T>(
     override val head: HeadLiteral<T>,
     val clause: BodyLiteral<T>,
     val operator: RuleBuilder.Aggregate,
-    val same: Collection<Variable<T>>,
-    val columns: Collection<Variable<T>>,
-    val result: Variable<T>,
+    val same: Collection<Variable>,
+    val columns: Collection<Variable>,
+    val result: Variable,
 ) : Rule<T> {
 
   override val body: List<BodyLiteral<T>>

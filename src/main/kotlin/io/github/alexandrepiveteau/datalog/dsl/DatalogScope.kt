@@ -19,10 +19,10 @@ interface DatalogScope<T> {
     get() = BodyLiterals(emptySet())
 
   /** Returns a new [Variable] which is guaranteed to be unique within this [DatalogScope]. */
-  fun variable(): Variable<T>
+  fun variable(): Variable
 
   /** Returns a [Variables] instance. */
-  fun variables(): Variables<T> = Variables { variable() }
+  fun variables(): Variables = Variables { variable() }
 
   /** Returns a new [Predicate] which is guaranteed to be unique within this [DatalogScope]. */
   fun predicate(): Predicate
@@ -42,30 +42,30 @@ interface DatalogScope<T> {
 
   /** Returns an [Aggregate] to compute the number of rows in a relation. */
   fun count(
-      same: Collection<Variable<T>>,
-      result: Variable<T>,
-  ): Aggregate<T> = Aggregate(RuleBuilder.Aggregate.Count, same, emptySet(), result)
+      same: Collection<Variable>,
+      result: Variable,
+  ): Aggregate = Aggregate(RuleBuilder.Aggregate.Count, same, emptySet(), result)
 
   /** Returns an [Aggregate] to compute the total value of some columns. */
   fun sum(
-      same: Collection<Variable<T>>,
-      columns: Collection<Variable<T>>,
-      result: Variable<T>,
-  ): Aggregate<T> = Aggregate(RuleBuilder.Aggregate.Sum, same, columns, result)
+      same: Collection<Variable>,
+      columns: Collection<Variable>,
+      result: Variable,
+  ): Aggregate = Aggregate(RuleBuilder.Aggregate.Sum, same, columns, result)
 
   /** Returns an [Aggregate] to compute the maximum value of some columns. */
   fun max(
-      same: Collection<Variable<T>>,
-      columns: Collection<Variable<T>>,
-      result: Variable<T>,
-  ): Aggregate<T> = Aggregate(RuleBuilder.Aggregate.Max, same, columns, result)
+      same: Collection<Variable>,
+      columns: Collection<Variable>,
+      result: Variable,
+  ): Aggregate = Aggregate(RuleBuilder.Aggregate.Max, same, columns, result)
 
   /** Returns an [Aggregate] to compute the minimum value of some columns. */
   fun min(
-      same: Collection<Variable<T>>,
-      columns: Collection<Variable<T>>,
-      result: Variable<T>,
-  ): Aggregate<T> = Aggregate(RuleBuilder.Aggregate.Min, same, columns, result)
+      same: Collection<Variable>,
+      columns: Collection<Variable>,
+      result: Variable,
+  ): Aggregate = Aggregate(RuleBuilder.Aggregate.Min, same, columns, result)
 
   // Terms operators.
   operator fun BodyLiteral<T>.plus(
@@ -85,7 +85,7 @@ interface DatalogScope<T> {
   ): BodyLiterals<T> = BodyLiterals(this.terms + terms.terms)
 
   operator fun BodyLiteral<T>.plus(
-      aggregate: Aggregate<T>,
+      aggregate: Aggregate,
   ): Aggregation<T> = Aggregation(this, aggregate)
 
   // Rules operators.

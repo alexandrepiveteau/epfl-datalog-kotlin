@@ -11,7 +11,7 @@ import io.github.alexandrepiveteau.datalog.core.rule.*
  * generate the selection clauses.
  */
 private fun <T> variableIndices(rule: List<Atom<T>>): Set<List<Int>> {
-  val variables = mutableMapOf<Variable<T>, MutableList<Int>>()
+  val variables = mutableMapOf<Variable, MutableList<Int>>()
   rule.forEachIndexed { index, atom ->
     when (atom) {
       is Variable -> variables.getOrPut(atom) { mutableListOf() }.add(index)

@@ -17,9 +17,9 @@ internal class DatalogRuleBuilder<T> : RuleBuilder<T> {
   /** An aggregate which has been stored. */
   private data class StoredAggregate<out T>(
       val operator: RuleBuilder.Aggregate,
-      val same: Collection<Variable<T>>,
-      val columns: Collection<Variable<T>>,
-      val result: Variable<T>,
+      val same: Collection<Variable>,
+      val columns: Collection<Variable>,
+      val result: Variable,
   )
 
   /** The list of [StoredPredicate]s. */
@@ -38,19 +38,19 @@ internal class DatalogRuleBuilder<T> : RuleBuilder<T> {
 
   override fun aggregate(
       operator: RuleBuilder.Aggregate,
-      same: Collection<Variable<T>>,
-      columns: Collection<Variable<T>>,
-      result: Variable<T>,
+      same: Collection<Variable>,
+      columns: Collection<Variable>,
+      result: Variable,
   ) {
     aggregates.add(StoredAggregate(operator, same, columns, result))
   }
 
-  private fun Rule<T>.variables(): Set<Variable<T>> {
-    val variables = mutableSetOf<Variable<T>>()
+  private fun Rule<T>.variables(): Set<Variable> {
+    val variables = mutableSetOf<Variable>()
     body
         .asSequence()
         .filter { !it.negated }
-        .forEach { clause -> variables.addAll(clause.atoms.filterIsInstance<Variable<T>>()) }
+        .forEach { clause -> variables.addAll(clause.atoms.filterIsInstance<Variable>()) }
     when (this) {
       is CombinationRule -> Unit
       is AggregationRule -> variables.add(this.result)
@@ -59,7 +59,7 @@ internal class DatalogRuleBuilder<T> : RuleBuilder<T> {
   }
 
   private fun requireGrounding(rule: Rule<T>) {
-    val head = rule.head.atoms.filterIsInstance<Variable<T>>()
+    val head = rule.head.atoms.filterIsInstance<Variable>()
     val body = rule.variables()
     for (variable in head) {
       if (variable !in body) throw NotGroundedException()
