@@ -51,9 +51,4 @@ interface ProgramBuilder<T> {
 fun <T> ProgramBuilder(
     domain: Domain<T>,
     algorithm: Algorithm = Algorithm.Naive,
-): ProgramBuilder<T> {
-  return when (algorithm) {
-    Algorithm.Naive -> DatalogProgramBuilder.naive(domain)
-    Algorithm.SemiNaive -> DatalogProgramBuilder.semiNaive(domain)
-  }
-}
+): ProgramBuilder<T> = DatalogProgramBuilder(domain, algorithm)

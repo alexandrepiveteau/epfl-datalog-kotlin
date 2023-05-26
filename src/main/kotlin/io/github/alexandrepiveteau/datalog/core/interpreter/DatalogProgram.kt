@@ -1,5 +1,6 @@
 package io.github.alexandrepiveteau.datalog.core.interpreter
 
+import io.github.alexandrepiveteau.datalog.core.Algorithm
 import io.github.alexandrepiveteau.datalog.core.Program
 import io.github.alexandrepiveteau.datalog.core.interpreter.algebra.forEach
 import io.github.alexandrepiveteau.datalog.core.interpreter.database.FactsDatabase
@@ -44,13 +45,12 @@ private fun <T> constants(rules: RulesDatabase<T>, facts: FactsDatabase<T>): Seq
  *
  * @param domain the [Domain] of the program.
  * @param rules the [Rule]s of the program.
- * @param evalStrata the function used to evaluate each stratum.
+ * @param algorithm the [Algorithm] used to evaluate each stratum.
  */
 internal class DatalogProgram<out T>(
     private val domain: Domain<T>,
     private val rules: MutableSet<Rule<T>>,
-    private val evalStrata:
-        (Context<T>) -> (RulesDatabase<T>, FactsDatabase<T>) -> FactsDatabase<T>,
+    private val algorithm: Algorithm,
 ) : Program<T> {
 
   private fun context(idb: RulesDatabase<T>, edb: FactsDatabase<T>): Context<T> {
@@ -60,7 +60,8 @@ internal class DatalogProgram<out T>(
   override fun solve(predicate: Predicate, arity: Int): Iterable<Fact<T>> {
     val (idb, edb) = partition(rules)
     val target = PredicateWithArity(predicate, arity)
-    val result = stratifiedEval(target, idb, edb, evalStrata(context(idb, edb)))
+    val context = context(idb, edb)
+    val result = stratifiedEval(target, idb, edb) { i, e -> algorithm.evaluate(context, i, e) }
     return result[target].tuples
   }
 }
