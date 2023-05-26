@@ -1,10 +1,10 @@
 package io.github.alexandrepiveteau.datalog.core.interpreter.database
 
+import io.github.alexandrepiveteau.datalog.core.Fact
 import io.github.alexandrepiveteau.datalog.core.interpreter.algebra.Relation
 import io.github.alexandrepiveteau.datalog.core.interpreter.algebra.distinct
 import io.github.alexandrepiveteau.datalog.core.interpreter.algebra.empty
 import io.github.alexandrepiveteau.datalog.core.interpreter.algebra.union
-import io.github.alexandrepiveteau.datalog.dsl.Value
 
 // TODO : Document this.
 internal interface FactsDatabaseBuilder<T> : FactsDatabaseBuilderScope<T> {
@@ -23,8 +23,8 @@ internal fun <T> MutableFactsDatabase.Companion.empty(): MutableFactsDatabase<T>
 // TODO : Document this.
 internal fun <T> MutableFactsDatabase.Companion.builder(): FactsDatabaseBuilder<T> {
   return object : FactsDatabaseBuilder<T> {
-    private val map = mutableMapOf<PredicateWithArity, MutableSet<List<Value<T>>>>()
-    override fun add(predicate: PredicateWithArity, fact: List<Value<T>>) {
+    private val map = mutableMapOf<PredicateWithArity, MutableSet<Fact<T>>>()
+    override fun add(predicate: PredicateWithArity, fact: Fact<T>) {
       if (predicate.arity != fact.size) throw IllegalArgumentException("Invalid arity")
       map.getOrPut(predicate) { mutableSetOf() }.add(fact)
     }

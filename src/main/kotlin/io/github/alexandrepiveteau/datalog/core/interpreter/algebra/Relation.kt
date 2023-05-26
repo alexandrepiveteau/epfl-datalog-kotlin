@@ -1,5 +1,6 @@
 package io.github.alexandrepiveteau.datalog.core.interpreter.algebra
 
+import io.github.alexandrepiveteau.datalog.core.Fact
 import io.github.alexandrepiveteau.datalog.core.RuleBuilder.Aggregate
 import io.github.alexandrepiveteau.datalog.core.interpreter.algebra.Column.Index
 import io.github.alexandrepiveteau.datalog.dsl.Domain
@@ -14,7 +15,7 @@ import io.github.alexandrepiveteau.datalog.dsl.Value
  * @property arity the number of atoms in each row of the relation.
  * @property tuples the sequence of [List] of [Value]s in the relation.
  */
-internal data class Relation<out T>(val arity: Int, val tuples: Set<List<Value<T>>>) {
+internal data class Relation<out T>(val arity: Int, val tuples: Set<Fact<T>>) {
 
   override fun toString(): String = buildString {
     append("Relation(arity=")
@@ -59,14 +60,14 @@ internal fun <T> Relation.Companion.domain(arity: Int, values: Sequence<Value<T>
  *
  * @param T the type of the elements in the relation.
  */
-internal inline fun <T> Relation<T>.forEach(f: (List<Value<T>>) -> Unit) = tuples.forEach(f)
+internal inline fun <T> Relation<T>.forEach(f: (Fact<T>) -> Unit) = tuples.forEach(f)
 
 /**
  * Returns the value of the [Column] in the [List] of values.
  *
  * @param T the type of the elements in the relation.
  */
-private fun <T> List<Value<T>>.value(column: Column<T>): Value<T> =
+private fun <T> Fact<T>.value(column: Column<T>): Value<T> =
     when (column) {
       is Column.Constant -> column.value
       is Index -> this[column.index]
@@ -141,7 +142,7 @@ internal fun <T> Relation<T>.union(other: Relation<T>): Relation<T> {
  */
 internal fun <T> Relation<T>.distinct(): Relation<T> {
   return buildRelation(arity) {
-    val seen = mutableSetOf<List<Value<T>>>()
+    val seen = mutableSetOf<Fact<T>>()
     forEach { if (seen.add(it)) yield(it) }
   }
 }
@@ -179,7 +180,7 @@ internal fun <T> Relation<T>.project(projection: List<Column<T>>): Relation<T> {
  * @param aggregate the [Aggregate] to apply to the values in the same set.
  * @param domain the [Domain] of the [List] of [Value]s.
  */
-private fun <T> List<Value<T>>.value(
+private fun <T> Fact<T>.value(
     column: AggregationColumn<T>,
     indices: Set<Index>,
     aggregate: Aggregate,
@@ -213,11 +214,11 @@ private fun <T> List<Value<T>>.value(
  * @return the [List] of [Value]s resulting from the merge.
  */
 private fun <T> Domain<T>.merge(
-    first: List<Value<T>>,
-    second: List<Value<T>>,
+    first: Fact<T>,
+    second: Fact<T>,
     aggregate: Aggregate,
     columns: List<AggregationColumn<T>>,
-): List<Value<T>> {
+): Fact<T> {
   return columns.mapIndexed { index, column ->
     val x = first[index]
     val y = second[index]
@@ -259,7 +260,7 @@ internal fun <T> Relation<T>.aggregate(
     // A map of the values in the same set to the values in the projection, for each row. Multiple
     // rows will eventually map to the same value, and the aggregate function will be applied to
     // merge them.
-    val result = mutableMapOf<List<Value<T>>, List<Value<T>>>()
+    val result = mutableMapOf<Fact<T>, Fact<T>>()
     distinct().forEach { atom ->
       val key = same.map { atom[it.index] }
       val existing = result[key]
@@ -284,5 +285,5 @@ internal fun <T> Relation<T>.aggregate(
  */
 internal fun <T> buildRelation(
     arity: Int,
-    builder: suspend SequenceScope<List<Value<T>>>.() -> Unit,
+    builder: suspend SequenceScope<Fact<T>>.() -> Unit,
 ): Relation<T> = Relation(arity, sequence { builder() }.toSet())

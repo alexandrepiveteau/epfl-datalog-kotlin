@@ -3,7 +3,6 @@ package io.github.alexandrepiveteau.datalog.core.interpreter
 import io.github.alexandrepiveteau.datalog.core.Fact
 import io.github.alexandrepiveteau.datalog.core.Predicate
 import io.github.alexandrepiveteau.datalog.core.Program
-import io.github.alexandrepiveteau.datalog.core.interpreter.algebra.Relation
 import io.github.alexandrepiveteau.datalog.core.interpreter.algebra.forEach
 import io.github.alexandrepiveteau.datalog.core.interpreter.database.FactsDatabase
 import io.github.alexandrepiveteau.datalog.core.interpreter.database.PredicateWithArity
@@ -65,12 +64,6 @@ internal class DatalogProgram<out T>(
     val (idb, edb) = partition(rules)
     val target = PredicateWithArity(predicate, arity)
     val result = stratifiedEval(target, idb, edb, evalStrata(context(idb, edb)))
-    val facts = result[target]
-    return facts.mapToFacts(predicate).asIterable()
+    return result[target].tuples
   }
 }
-
-/** Transforms a [Relation] to a [Sequence] of [Fact]s, which can be output back. */
-private fun <T> Relation<T>.mapToFacts(
-    predicate: Predicate,
-): Sequence<Fact<T>> = sequence { tuples.forEach { yield(Fact(predicate, it)) } }

@@ -1,6 +1,7 @@
 package io.github.alexandrepiveteau.datalog.dsl
 
 import io.github.alexandrepiveteau.datalog.core.Algorithm
+import io.github.alexandrepiveteau.datalog.core.Fact
 import io.github.alexandrepiveteau.datalog.core.Predicate
 import io.github.alexandrepiveteau.datalog.core.ProgramBuilder as CoreProgramBuilder
 
@@ -53,12 +54,7 @@ private class Datalog<T>(domain: Domain<T>, algorithm: Algorithm) : DatalogScope
     }
   }
 
-  override fun solve(predicate: Predicate, arity: Int): Set<Term<T>> {
-    return builder
-        .build()
-        .solve(predicate, arity)
-        .asSequence()
-        .map { Term(predicate = it.predicate, atoms = it.atoms, negated = false) }
-        .toSet()
+  override fun solve(predicate: Predicate, arity: Int): Set<Fact<T>> {
+    return builder.build().solve(predicate, arity).toSet()
   }
 }

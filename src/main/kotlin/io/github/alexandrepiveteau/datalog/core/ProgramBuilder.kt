@@ -26,7 +26,7 @@ interface ProgramBuilder<T> {
    * @param predicate the [Predicate] to which the fact belongs.
    * @param atoms the [List] of constants that make up the fact.
    */
-  fun fact(predicate: Predicate, atoms: List<Value<T>>) = rule(predicate, atoms) {}
+  fun fact(predicate: Predicate, atoms: Fact<T>) = rule(predicate, atoms) {}
 
   /**
    * Adds a new rule to the program, which is a [Predicate] with a body. The [atoms] must be

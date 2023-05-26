@@ -19,7 +19,7 @@ interface RuleBuilder<in T> {
     Count {
       override fun <T> Domain<T>.transform(
           indices: Set<Column.Index>,
-          atoms: List<Value<T>>,
+          atoms: Fact<T>,
       ) = unit()
       override fun <T> Domain<T>.combine(
           first: Value<T>,
@@ -31,7 +31,7 @@ interface RuleBuilder<in T> {
     Sum {
       override fun <T> Domain<T>.transform(
           indices: Set<Column.Index>,
-          atoms: List<Value<T>>,
+          atoms: Fact<T>,
       ) = atoms.filterIndexed { index, _ -> Column.Index(index) in indices }.reduce(::sum)
       override fun <T> Domain<T>.combine(
           first: Value<T>,
@@ -44,7 +44,7 @@ interface RuleBuilder<in T> {
 
       override fun <T> Domain<T>.transform(
           indices: Set<Column.Index>,
-          atoms: List<Value<T>>,
+          atoms: Fact<T>,
       ) = atoms.filterIndexed { index, _ -> Column.Index(index) in indices }.reduce(::min)
       override fun <T> Domain<T>.combine(
           first: Value<T>,
@@ -56,7 +56,7 @@ interface RuleBuilder<in T> {
     Max {
       override fun <T> Domain<T>.transform(
           indices: Set<Column.Index>,
-          atoms: List<Value<T>>,
+          atoms: Fact<T>,
       ) = atoms.filterIndexed { index, _ -> Column.Index(index) in indices }.reduce(::max)
       override fun <T> Domain<T>.combine(
           first: Value<T>,
@@ -69,7 +69,7 @@ interface RuleBuilder<in T> {
      */
     internal abstract fun <T> Domain<T>.transform(
         indices: Set<Column.Index>,
-        atoms: List<Value<T>>,
+        atoms: Fact<T>,
     ): Value<T>
 
     /** Returns the result of the [combine] operation on the two [Atom]s. */

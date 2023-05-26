@@ -1,9 +1,10 @@
 package io.github.alexandrepiveteau.datalog.core.interpreter
 
+import io.github.alexandrepiveteau.datalog.core.Fact
 import io.github.alexandrepiveteau.datalog.core.interpreter.database.*
 import io.github.alexandrepiveteau.datalog.dsl.Value
 
-private fun <T> requireFact(rule: CombinationRule<T>): List<Value<T>> {
+private fun <T> requireFact(rule: CombinationRule<T>): Fact<T> {
   require(rule.clauses.isEmpty()) { "Rule is not a fact." }
   val result = rule.atoms.filterIsInstance<Value<T>>()
   require(result.size == rule.arity) { "This fact has some unsafe variables." }

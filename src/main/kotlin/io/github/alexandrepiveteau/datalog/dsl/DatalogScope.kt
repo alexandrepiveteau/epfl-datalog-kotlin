@@ -1,5 +1,6 @@
 package io.github.alexandrepiveteau.datalog.dsl
 
+import io.github.alexandrepiveteau.datalog.core.Fact
 import io.github.alexandrepiveteau.datalog.core.Predicate
 import io.github.alexandrepiveteau.datalog.core.RuleBuilder
 
@@ -87,5 +88,5 @@ interface DatalogScope<T> {
    * @param predicate the [Predicate] to solve.
    * @param arity the arity of the [Predicate] to solve.
    */
-  fun solve(predicate: Predicate, arity: Int): Set<Term<T>>
+  fun solve(predicate: Predicate, arity: Int): Set<Fact<T>>
 }
