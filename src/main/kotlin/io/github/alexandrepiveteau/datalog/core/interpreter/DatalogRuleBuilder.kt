@@ -1,5 +1,6 @@
 package io.github.alexandrepiveteau.datalog.core.interpreter
 
+import io.github.alexandrepiveteau.datalog.core.NotGroundedException
 import io.github.alexandrepiveteau.datalog.core.Predicate
 import io.github.alexandrepiveteau.datalog.core.RuleBuilder
 import io.github.alexandrepiveteau.datalog.dsl.Atom
@@ -59,7 +60,9 @@ internal class DatalogRuleBuilder<T> : RuleBuilder<T> {
   private fun requireGrounding(rule: Rule<T>) {
     val head = rule.atoms.filterIsInstance<Variable<T>>()
     val body = rule.variables()
-    for (variable in head) require(variable in body)
+    for (variable in head) {
+      if (variable !in body) throw NotGroundedException()
+    }
   }
 
   /**
