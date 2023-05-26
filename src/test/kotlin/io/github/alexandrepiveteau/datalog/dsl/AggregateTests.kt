@@ -65,7 +65,6 @@ class AggregateTests {
 
   @Test
   fun `sum from column`() = program {
-    constants(1, 2, 3, 4, 5, 6, 7, 8, 9, 10)
     val (p, r) = predicates()
     val (v, s) = variables()
 
@@ -80,7 +79,6 @@ class AggregateTests {
 
   @Test
   fun `count items without duplicates`() = program {
-    constants(1, 2, 3, 4, 5, 6, 7, 8, 9, 10)
     val (p, r) = predicates()
     val (v, s) = variables()
 
@@ -95,7 +93,6 @@ class AggregateTests {
 
   @Test
   fun `count items with duplicates returns distinct count`() = program {
-    constants(1, 2, 3, 4, 5, 6, 7, 8, 9, 10)
     val (p, r) = predicates()
     val (v, s) = variables()
 
@@ -113,7 +110,6 @@ class AggregateTests {
 
   @Test
   fun `count items by type returns distinct count`() = program {
-    constants(1, 2, 3, 4, 5, 6, 7, 8, 9, 10)
     val (p, r) = predicates()
     val (v, t) = variables()
 

@@ -1,10 +1,10 @@
 package io.github.alexandrepiveteau.datalog.core.interpreter
 
-import io.github.alexandrepiveteau.datalog.core.Atom
-import io.github.alexandrepiveteau.datalog.core.Domain
 import io.github.alexandrepiveteau.datalog.core.interpreter.algebra.Relation
 import io.github.alexandrepiveteau.datalog.core.interpreter.algebra.domain
 import io.github.alexandrepiveteau.datalog.core.interpreter.algebra.minus
+import io.github.alexandrepiveteau.datalog.dsl.Domain
+import io.github.alexandrepiveteau.datalog.dsl.Value
 
 /**
  * The context in which the evaluation is taking place.
@@ -12,11 +12,11 @@ import io.github.alexandrepiveteau.datalog.core.interpreter.algebra.minus
  * @param atoms the set of atoms which form the domain of the constants in the program.
  * @param domain the [Domain] on which the results are computed.
  */
-internal data class Context(
-    val atoms: Sequence<Atom>,
-    val domain: Domain,
+internal data class Context<T>(
+    val atoms: Sequence<Value<T>>,
+    val domain: Domain<T>,
 ) {
 
   /** Negates the [Relation] in this [Context]. */
-  internal fun Relation.negated(): Relation = Relation.domain(arity, atoms) - this
+  internal fun Relation<T>.negated(): Relation<T> = Relation.domain(arity, atoms) - this
 }

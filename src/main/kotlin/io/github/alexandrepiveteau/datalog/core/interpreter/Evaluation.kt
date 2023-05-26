@@ -1,19 +1,24 @@
 package io.github.alexandrepiveteau.datalog.core.interpreter
 
-import io.github.alexandrepiveteau.datalog.core.*
 import io.github.alexandrepiveteau.datalog.core.interpreter.algebra.*
 import io.github.alexandrepiveteau.datalog.core.interpreter.algebra.Column.Constant
 import io.github.alexandrepiveteau.datalog.core.interpreter.algebra.Column.Index
 import io.github.alexandrepiveteau.datalog.core.interpreter.database.*
+import io.github.alexandrepiveteau.datalog.dsl.Atom
+import io.github.alexandrepiveteau.datalog.dsl.Value
+import io.github.alexandrepiveteau.datalog.dsl.Variable
 
 /**
  * Returns the [Set] of all the indices of the variables in the [CombinationRule]. This is used to
  * generate the selection clauses.
  */
-private fun variableIndices(rule: AtomList): Set<List<Int>> {
-  val variables = mutableMapOf<Atom, MutableList<Int>>()
+private fun <T> variableIndices(rule: List<Atom<T>>): Set<List<Int>> {
+  val variables = mutableMapOf<Variable<T>, MutableList<Int>>()
   rule.forEachIndexed { index, atom ->
-    if (atom.isVariable) variables.getOrPut(atom) { mutableListOf() }.add(index)
+    when (atom) {
+      is Variable -> variables.getOrPut(atom) { mutableListOf() }.add(index)
+      is Value -> Unit
+    }
   }
   return variables.values.map { it.toList() }.toSet()
 }
@@ -22,9 +27,14 @@ private fun variableIndices(rule: AtomList): Set<List<Int>> {
  * Returns the [List] of indices for constants in the [CombinationRule]. This is used to generate
  * the clauses that filter the constants.
  */
-private fun constantIndices(rule: AtomList): List<Int> {
+private fun constantIndices(rule: List<Atom<*>>): List<Int> {
   val constants = mutableListOf<Int>()
-  rule.forEachIndexed { index, atom -> if (atom.isConstant) constants.add(index) }
+  rule.forEachIndexed { index, atom ->
+    when (atom) {
+      is Variable -> Unit
+      is Value -> constants.add(index)
+    }
+  }
   return constants
 }
 
@@ -32,26 +42,25 @@ private fun constantIndices(rule: AtomList): List<Int> {
  * Returns the [List] of [Column]s that should be used for the projection. This is used to generate
  * the projection clauses.
  */
-private fun projection(predicate: AtomList, rule: AtomList): List<Column> {
+private fun <T> projection(predicate: List<Atom<T>>, rule: List<Atom<T>>): List<Column<T>> {
   return predicate.map { atom ->
-    if (atom.isVariable) {
-      val index = rule.toList().indexOfFirst { atom == it }
-      Index(index)
-    } else {
-      Constant(atom)
+    when (atom) {
+      is Variable -> Index(rule.indexOfFirst { it == atom })
+      is Value -> Constant(atom)
     }
   }
 }
 
 /** Returns the [Set] of [Set] of [Column] that should be used for equality selection. */
-private fun selection(rule: AtomList): Set<Set<Column>> {
+private fun <T> selection(rule: List<Atom<T>>): Set<Set<Column<T>>> {
   return buildSet {
     val constants = constantIndices(rule)
     for (variable in variableIndices(rule)) {
       add(variable.mapTo(mutableSetOf()) { Index(it) })
     }
     for (constant in constants) {
-      add(setOf(Constant(rule[constant]), Index(constant)))
+      // TODO : Remove this unsafe cast somehow.
+      add(setOf(Constant(rule[constant] as Value<T>), Index(constant)))
     }
   }
 }
@@ -65,7 +74,7 @@ private fun selection(rule: AtomList): Set<Set<Column>> {
  * @param rule the [Rule] to evaluate.
  * @param relations the [Relation]s to evaluate the rule against.
  */
-private fun Context.evalRule(rule: Rule, relations: List<Relation>): Relation {
+private fun <T> Context<T>.evalRule(rule: Rule<T>, relations: List<Relation<T>>): Relation<T> {
   return when (rule) {
     is CombinationRule -> evalCombinationRule(rule, relations)
     is AggregationRule -> evalAggregationRule(rule, relations.single())
@@ -73,10 +82,10 @@ private fun Context.evalRule(rule: Rule, relations: List<Relation>): Relation {
 }
 
 /** @see evalRule */
-private fun Context.evalCombinationRule(
-    rule: CombinationRule,
-    relations: List<Relation>
-): Relation {
+private fun <T> Context<T>.evalCombinationRule(
+    rule: CombinationRule<T>,
+    relations: List<Relation<T>>
+): Relation<T> {
   require(rule.clauses.size == relations.size) { "Not the same number of relations and clauses." }
   // 1. Negate all the relations that are negated in the rule.
   // 2. Generate a concatenation of all atoms in the rule, after the join.
@@ -84,24 +93,25 @@ private fun Context.evalCombinationRule(
   // 4. Select the rows that match the constants and variables.
   // 5. Project the rows to the correct indices, and add constants to the projection.
   val negated = relations.mapIndexed { idx, r -> if (rule.clauses[idx].negated) r.negated() else r }
-  val concat = rule.clauses.flatMap { it.atoms.toList() }.asAtomList()
+  val concat = rule.clauses.flatMap { it.atoms.toList() }
   return negated.join().select(selection(concat)).project(projection(rule.atoms, concat))
 }
 
 /** @see evalRule */
-private fun Context.evalAggregationRule(
-    rule: AggregationRule,
-    relation: Relation,
-): Relation {
+private fun <T> Context<T>.evalAggregationRule(
+    rule: AggregationRule<T>,
+    relation: Relation<T>,
+): Relation<T> {
   // 1. Negate the relation if the rule is negated.
   // 2. Perform the aggregation.
   val negated = if (rule.clause.negated) relation.negated() else relation
   val projection =
       rule.atoms.map { atom ->
-        when {
-          atom.isVariable && atom == rule.result -> AggregationColumn.Aggregate
-          atom.isVariable -> AggregationColumn.Column(Index(rule.clause.atoms.indexOf(atom)))
-          else -> AggregationColumn.Column(Constant(atom))
+        when (atom) {
+          is Variable ->
+              if (atom == rule.result) AggregationColumn.Aggregate
+              else AggregationColumn.Column(Index(rule.clause.atoms.indexOf(atom)))
+          is Value -> AggregationColumn.Column(Constant(atom))
         }
       }
   val same = rule.same.mapTo(mutableSetOf()) { Index(rule.clause.atoms.indexOf(it)) }
@@ -129,14 +139,14 @@ private fun Context.evalAggregationRule(
  * @param relations the base [Relation]s to evaluate the rule against.
  * @param incremental the delta [Relation]s to evaluate the rule against.
  */
-private fun Context.evalRuleIncremental(
-    rule: Rule,
-    relations: List<Relation>,
-    incremental: List<Relation>,
-): Relation {
+private fun <T> Context<T>.evalRuleIncremental(
+    rule: Rule<T>,
+    relations: List<Relation<T>>,
+    incremental: List<Relation<T>>,
+): Relation<T> {
   require(rule.clauses.size == relations.size) { "Not the same number of relations and clauses." }
   require(rule.clauses.size == incremental.size) { "Not the same number of relations and clauses." }
-  var result = Relation.empty(rule.arity)
+  var result = Relation.empty<T>(rule.arity)
   for (i in 0 until rule.clauses.size) {
     val args = List(rule.clauses.size) { index -> if (index == i) incremental[i] else relations[i] }
     result = result.union(evalRule(rule, args))
@@ -156,14 +166,14 @@ private fun Context.evalRuleIncremental(
  * @param derived the derived [FactsDatabase] to evaluate the rule against.
  * @return the [Relation] that could be derived from the [RulesDatabase] and the [FactsDatabase].
  */
-private fun Context.eval(
+private fun <T> Context<T>.eval(
     predicate: PredicateWithArity,
-    idb: RulesDatabase,
-    base: FactsDatabase,
-    derived: FactsDatabase,
-): Relation {
+    idb: RulesDatabase<T>,
+    base: FactsDatabase<T>,
+    derived: FactsDatabase<T>,
+): Relation<T> {
   val rules = idb[predicate]
-  var result = Relation.empty(predicate.arity)
+  var result = Relation.empty<T>(predicate.arity)
   val facts = base + derived
   for (rule in rules) {
     val list = rule.clauses.map { facts[PredicateWithArity(it.predicate, it.arity)] }
@@ -183,15 +193,15 @@ private fun Context.eval(
  * @param derived the derived [FactsDatabase] to evaluate the rule against.
  * @param delta the delta [FactsDatabase] to evaluate the rule against.
  */
-private fun Context.evalIncremental(
+private fun <T> Context<T>.evalIncremental(
     predicate: PredicateWithArity,
-    idb: RulesDatabase,
-    base: FactsDatabase,
-    derived: FactsDatabase,
-    delta: FactsDatabase,
-): Relation {
+    idb: RulesDatabase<T>,
+    base: FactsDatabase<T>,
+    derived: FactsDatabase<T>,
+    delta: FactsDatabase<T>,
+): Relation<T> {
   val rules = idb[predicate]
-  var result = Relation.empty(predicate.arity)
+  var result = Relation.empty<T>(predicate.arity)
   val factsBase = base + derived
   val factsDelta = base + delta // Negation needs base facts to be present in the delta.
   for (rule in rules) {
@@ -203,9 +213,12 @@ private fun Context.evalIncremental(
 }
 
 /** [naiveEval] takes an [RulesDatabase] and a base [FactsDatabase], and derives new facts. */
-internal fun Context.naiveEval(idb: RulesDatabase, base: FactsDatabase): FactsDatabase {
-  val rels = MutableFactsDatabase.empty()
-  val copy = MutableFactsDatabase.empty()
+internal fun <T> Context<T>.naiveEval(
+    idb: RulesDatabase<T>,
+    base: FactsDatabase<T>,
+): FactsDatabase<T> {
+  val rels = MutableFactsDatabase.empty<T>()
+  val copy = MutableFactsDatabase.empty<T>()
 
   do {
     for (predicate in idb) copy[predicate] = rels[predicate]
@@ -216,13 +229,16 @@ internal fun Context.naiveEval(idb: RulesDatabase, base: FactsDatabase): FactsDa
 }
 
 /** [semiNaiveEval] takes an [RulesDatabase] and a base [FactsDatabase], and derives new facts. */
-internal fun Context.semiNaiveEval(idb: RulesDatabase, edb: FactsDatabase): FactsDatabase {
-  val rels = MutableFactsDatabase.empty()
-  val delta = MutableFactsDatabase.empty()
-  val copy = MutableFactsDatabase.empty()
+internal fun <T> Context<T>.semiNaiveEval(
+    idb: RulesDatabase<T>,
+    edb: FactsDatabase<T>,
+): FactsDatabase<T> {
+  val rels = MutableFactsDatabase.empty<T>()
+  val delta = MutableFactsDatabase.empty<T>()
+  val copy = MutableFactsDatabase.empty<T>()
 
   for (predicate in idb) {
-    val res = eval(predicate, idb, edb, MutableFactsDatabase.empty())
+    val res = eval(predicate, idb, edb, MutableFactsDatabase.empty<T>())
     rels[predicate] = res
     delta[predicate] = res
   }

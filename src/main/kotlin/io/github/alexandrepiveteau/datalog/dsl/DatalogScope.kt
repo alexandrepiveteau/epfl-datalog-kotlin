@@ -1,5 +1,6 @@
 package io.github.alexandrepiveteau.datalog.dsl
 
+import io.github.alexandrepiveteau.datalog.core.Predicate
 import io.github.alexandrepiveteau.datalog.core.RuleBuilder
 
 /**
@@ -17,9 +18,6 @@ interface DatalogScope<T> {
   val empty: Terms<Nothing>
     get() = Terms(emptySet())
 
-  /** Registers the set of constants in the [DatalogScope]. */
-  fun constants(vararg values: T)
-
   /** Returns a new [Variable] which is guaranteed to be unique within this [DatalogScope]. */
   fun variable(): Variable<T>
 
@@ -27,45 +25,45 @@ interface DatalogScope<T> {
   fun variables(): Variables<T> = Variables { variable() }
 
   /** Returns a new [Predicate] which is guaranteed to be unique within this [DatalogScope]. */
-  fun predicate(): Predicate<T>
+  fun predicate(): Predicate
 
   /** Returns a [Predicates] instance. */
-  fun predicates(): Predicates<T> = Predicates { predicate() }
+  fun predicates(): Predicates = Predicates { predicate() }
 
   // Utilities for creating terms.
   fun <R> R.asValue(): Value<R> = Value(this)
 
   // Relation to term operators.
-  operator fun Predicate<T>.invoke(vararg atoms: T) = Term(this, atoms.map { Value(it) }, false)
-  operator fun Predicate<T>.invoke(vararg atoms: Atom<T>) = Term(this, atoms.toList(), false)
+  operator fun Predicate.invoke(vararg atoms: T) = Term(this, atoms.map { Value(it) }, false)
+  operator fun Predicate.invoke(vararg atoms: Atom<T>) = Term(this, atoms.toList(), false)
   operator fun Term<T>.not() = copy(negated = !negated)
 
   // Aggregation functions.
 
   /** Returns an [Aggregate] to compute the number of rows in a relation. */
   fun count(
-      same: Iterable<Variable<T>>,
+      same: Collection<Variable<T>>,
       result: Variable<T>,
   ): Aggregate<T> = Aggregate(RuleBuilder.Aggregate.Count, same, emptySet(), result)
 
   /** Returns an [Aggregate] to compute the total value of some columns. */
   fun sum(
-      same: Iterable<Variable<T>>,
-      columns: Iterable<Variable<T>>,
+      same: Collection<Variable<T>>,
+      columns: Collection<Variable<T>>,
       result: Variable<T>,
   ): Aggregate<T> = Aggregate(RuleBuilder.Aggregate.Sum, same, columns, result)
 
   /** Returns an [Aggregate] to compute the maximum value of some columns. */
   fun max(
-      same: Iterable<Variable<T>>,
-      columns: Iterable<Variable<T>>,
+      same: Collection<Variable<T>>,
+      columns: Collection<Variable<T>>,
       result: Variable<T>,
   ): Aggregate<T> = Aggregate(RuleBuilder.Aggregate.Max, same, columns, result)
 
   /** Returns an [Aggregate] to compute the minimum value of some columns. */
   fun min(
-      same: Iterable<Variable<T>>,
-      columns: Iterable<Variable<T>>,
+      same: Collection<Variable<T>>,
+      columns: Collection<Variable<T>>,
       result: Variable<T>,
   ): Aggregate<T> = Aggregate(RuleBuilder.Aggregate.Min, same, columns, result)
 
@@ -89,5 +87,5 @@ interface DatalogScope<T> {
    * @param predicate the [Predicate] to solve.
    * @param arity the arity of the [Predicate] to solve.
    */
-  fun solve(predicate: Predicate<T>, arity: Int): Set<Term<T>>
+  fun solve(predicate: Predicate, arity: Int): Set<Term<T>>
 }
