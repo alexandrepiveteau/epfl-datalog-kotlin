@@ -5,7 +5,6 @@ import io.github.alexandrepiveteau.datalog.core.rule.Atom
 import io.github.alexandrepiveteau.datalog.core.rule.Fact
 import io.github.alexandrepiveteau.datalog.core.rule.Predicate
 import io.github.alexandrepiveteau.datalog.core.rule.Variable
-import io.github.alexandrepiveteau.datalog.dsl.Domain
 
 /**
  * A [ProgramBuilder] is a mutable builder for [Program] instances. It is used to build a [Program]

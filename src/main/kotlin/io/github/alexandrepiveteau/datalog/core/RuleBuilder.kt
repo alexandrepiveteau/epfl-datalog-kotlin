@@ -2,7 +2,6 @@ package io.github.alexandrepiveteau.datalog.core
 
 import io.github.alexandrepiveteau.datalog.core.interpreter.algebra.Column
 import io.github.alexandrepiveteau.datalog.core.rule.*
-import io.github.alexandrepiveteau.datalog.dsl.Domain
 
 /**
  * A [RuleBuilder] is a mutable builder for the body of a [Program] rule. It is used to define the

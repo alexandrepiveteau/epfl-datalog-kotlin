@@ -4,7 +4,7 @@ import io.github.alexandrepiveteau.datalog.core.interpreter.algebra.Relation
 import io.github.alexandrepiveteau.datalog.core.interpreter.algebra.domain
 import io.github.alexandrepiveteau.datalog.core.interpreter.algebra.minus
 import io.github.alexandrepiveteau.datalog.core.rule.Value
-import io.github.alexandrepiveteau.datalog.dsl.Domain
+import io.github.alexandrepiveteau.datalog.core.Domain
 
 /**
  * The context in which the evaluation is taking place.

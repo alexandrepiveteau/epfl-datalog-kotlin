@@ -1,7 +1,7 @@
 package io.github.alexandrepiveteau.datalog.dsl.domains
 
 import io.github.alexandrepiveteau.datalog.core.rule.Value
-import io.github.alexandrepiveteau.datalog.dsl.Domain
+import io.github.alexandrepiveteau.datalog.core.Domain
 
 /**
  * An implementation of [Domain] for [Number] values. This implementation is abstract, and is

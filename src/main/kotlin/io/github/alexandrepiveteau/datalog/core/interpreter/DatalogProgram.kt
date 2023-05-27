@@ -7,7 +7,7 @@ import io.github.alexandrepiveteau.datalog.core.interpreter.database.FactsDataba
 import io.github.alexandrepiveteau.datalog.core.interpreter.database.PredicateWithArity
 import io.github.alexandrepiveteau.datalog.core.interpreter.database.RulesDatabase
 import io.github.alexandrepiveteau.datalog.core.rule.*
-import io.github.alexandrepiveteau.datalog.dsl.Domain
+import io.github.alexandrepiveteau.datalog.core.Domain
 
 private fun <T> List<Atom<T>>.constants(): Sequence<Value<T>> {
   return sequence {
@@ -48,9 +48,9 @@ private fun <T> constants(rules: RulesDatabase<T>, facts: FactsDatabase<T>): Seq
  * @param algorithm the [Algorithm] used to evaluate each stratum.
  */
 internal class DatalogProgram<out T>(
-    private val domain: Domain<T>,
-    private val rules: MutableSet<Rule<T>>,
-    private val algorithm: Algorithm,
+  private val domain: Domain<T>,
+  private val rules: MutableSet<Rule<T>>,
+  private val algorithm: Algorithm,
 ) : Program<T> {
 
   private fun context(idb: RulesDatabase<T>, edb: FactsDatabase<T>): Context<T> {

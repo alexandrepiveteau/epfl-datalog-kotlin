@@ -8,7 +8,7 @@ import io.github.alexandrepiveteau.datalog.core.rule.Atom
 import io.github.alexandrepiveteau.datalog.core.rule.Predicate
 import io.github.alexandrepiveteau.datalog.core.rule.Rule
 import io.github.alexandrepiveteau.datalog.core.rule.Variable
-import io.github.alexandrepiveteau.datalog.dsl.Domain
+import io.github.alexandrepiveteau.datalog.core.Domain
 
 /**
  * An implementation of [ProgramBuilder] which can be used to build a [Program].

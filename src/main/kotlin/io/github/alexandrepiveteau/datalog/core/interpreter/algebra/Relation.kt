@@ -4,7 +4,7 @@ import io.github.alexandrepiveteau.datalog.core.RuleBuilder.AggregationFunction
 import io.github.alexandrepiveteau.datalog.core.interpreter.algebra.Column.Index
 import io.github.alexandrepiveteau.datalog.core.rule.Fact
 import io.github.alexandrepiveteau.datalog.core.rule.Value
-import io.github.alexandrepiveteau.datalog.dsl.Domain
+import io.github.alexandrepiveteau.datalog.core.Domain
 
 /**
  * A [Relation] contains a set of tuples as [List]s of [Value]s and has a certain arity.
