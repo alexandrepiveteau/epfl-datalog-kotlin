@@ -152,4 +152,33 @@ class AggregateTests {
       add(listOf(4))
     }
   }
+
+  @Test
+  fun `graph degree test`() = program {
+    val (edge, outDegree, inDegree) = predicates()
+    val (x, y, c) = variables()
+
+    edge(1, 2) += empty
+    edge(1, 3) += empty
+    edge(2, 3) += empty
+    edge(3, 1) += empty
+    edge(3, 4) += empty
+    edge(3, 2) += empty
+
+    outDegree(x, c) += edge(x, y) + count(setOf(x), c)
+    inDegree(y, c) += edge(x, y) + count(setOf(y), c)
+
+    expect(outDegree, 2) {
+      add(listOf(1, 2))
+      add(listOf(2, 1))
+      add(listOf(3, 3))
+    }
+
+    expect(inDegree, 2) {
+      add(listOf(1, 1))
+      add(listOf(2, 2))
+      add(listOf(3, 2))
+      add(listOf(4, 1))
+    }
+  }
 }
