@@ -11,7 +11,7 @@ import io.github.alexandrepiveteau.datalog.dsl.Domain
 interface RuleBuilder<in T> {
 
   /** An enumeration representing the different kinds of aggregates available. */
-  enum class Aggregate {
+  enum class AggregationFunction {
 
     /** Returns the number of elements. */
     Count {
@@ -95,14 +95,14 @@ interface RuleBuilder<in T> {
    * The values present in [columns] in the other [predicate] will be aggregated, and the result
    * will be stored in the variable [result], which may be used in the head of the rule.
    *
-   * @param operator the [Aggregate] operator to use.
+   * @param operator the [AggregationFunction] operator to use.
    * @param same the [List] of variables that are present in the other [predicate], and for which
    *   the values will be aggregated if they are equal.
    * @param columns the [List] of variables the [predicate] whose values will be aggregated.
    * @param result the [Atom] in which the result of the aggregation will be stored.
    */
   fun aggregate(
-      operator: Aggregate,
+      operator: AggregationFunction,
       same: Collection<Variable>,
       columns: Collection<Variable>,
       result: Variable,

@@ -44,28 +44,28 @@ interface DatalogScope<T> {
   fun count(
       same: Collection<Variable>,
       result: Variable,
-  ): Aggregate = Aggregate(RuleBuilder.Aggregate.Count, same, emptySet(), result)
+  ): Aggregate = Aggregate(RuleBuilder.AggregationFunction.Count, same, emptySet(), result)
 
   /** Returns an [Aggregate] to compute the total value of some columns. */
   fun sum(
       same: Collection<Variable>,
       columns: Collection<Variable>,
       result: Variable,
-  ): Aggregate = Aggregate(RuleBuilder.Aggregate.Sum, same, columns, result)
+  ): Aggregate = Aggregate(RuleBuilder.AggregationFunction.Sum, same, columns, result)
 
   /** Returns an [Aggregate] to compute the maximum value of some columns. */
   fun max(
       same: Collection<Variable>,
       columns: Collection<Variable>,
       result: Variable,
-  ): Aggregate = Aggregate(RuleBuilder.Aggregate.Max, same, columns, result)
+  ): Aggregate = Aggregate(RuleBuilder.AggregationFunction.Max, same, columns, result)
 
   /** Returns an [Aggregate] to compute the minimum value of some columns. */
   fun min(
       same: Collection<Variable>,
       columns: Collection<Variable>,
       result: Variable,
-  ): Aggregate = Aggregate(RuleBuilder.Aggregate.Min, same, columns, result)
+  ): Aggregate = Aggregate(RuleBuilder.AggregationFunction.Min, same, columns, result)
 
   // Terms operators.
   operator fun BodyLiteral<T>.plus(

@@ -1,5 +1,6 @@
 package io.github.alexandrepiveteau.datalog.dsl
 
+import io.github.alexandrepiveteau.datalog.core.rule.Aggregate
 import io.github.alexandrepiveteau.datalog.core.rule.BodyLiteral
 
 /**

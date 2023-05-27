@@ -102,18 +102,19 @@ private fun <T> Context<T>.evalAggregationRule(
       rule.head.atoms.map { atom ->
         when (atom) {
           is Variable ->
-              if (atom == rule.result) AggregationColumn.Aggregate
+              if (atom == rule.aggregate.result) AggregationColumn.Aggregate
               else AggregationColumn.Column(Index(rule.clause.atoms.indexOf(atom)))
           is Value -> AggregationColumn.Column(Constant(atom))
         }
       }
-  val same = rule.same.mapTo(mutableSetOf()) { Index(rule.clause.atoms.indexOf(it)) }
-  val indices = rule.columns.mapTo(mutableSetOf()) { Index(rule.clause.atoms.indexOf(it)) }
+  val same = rule.aggregate.same.mapTo(mutableSetOf()) { Index(rule.clause.atoms.indexOf(it)) }
+  val indices =
+      rule.aggregate.columns.mapTo(mutableSetOf()) { Index(rule.clause.atoms.indexOf(it)) }
   return negated.aggregate(
       projection = projection,
       same = same,
       domain = domain,
-      aggregate = rule.operator,
+      aggregate = rule.aggregate.aggregate,
       indices = indices,
   )
 }

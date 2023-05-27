@@ -15,7 +15,7 @@ class RelationTests : StringSpec() {
               projection = emptyList(),
               same = emptySet(),
               domain = Int.domain(),
-              aggregate = RuleBuilder.Aggregate.Max,
+              aggregate = RuleBuilder.AggregationFunction.Max,
               indices = emptySet(),
           )
 

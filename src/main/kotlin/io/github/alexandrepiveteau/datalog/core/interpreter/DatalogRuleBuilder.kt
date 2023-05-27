@@ -14,19 +14,11 @@ internal class DatalogRuleBuilder<T> : RuleBuilder<T> {
       val negated: Boolean,
   )
 
-  /** An aggregate which has been stored. */
-  private data class StoredAggregate<out T>(
-      val operator: RuleBuilder.Aggregate,
-      val same: Collection<Variable>,
-      val columns: Collection<Variable>,
-      val result: Variable,
-  )
-
   /** The list of [StoredPredicate]s. */
   private val predicates = mutableSetOf<StoredPredicate<T>>()
 
-  /** The list of [StoredAggregate]. */
-  private val aggregates = mutableSetOf<StoredAggregate<T>>()
+  /** The list of [Aggregate]s. */
+  private val aggregates = mutableSetOf<Aggregate>()
 
   override fun predicate(
       predicate: Predicate,
@@ -37,12 +29,12 @@ internal class DatalogRuleBuilder<T> : RuleBuilder<T> {
   }
 
   override fun aggregate(
-      operator: RuleBuilder.Aggregate,
+      operator: RuleBuilder.AggregationFunction,
       same: Collection<Variable>,
       columns: Collection<Variable>,
       result: Variable,
   ) {
-    aggregates.add(StoredAggregate(operator, same, columns, result))
+    aggregates.add(Aggregate(operator, same, columns, result))
   }
 
   private fun Rule<T>.limited(): Set<Variable> {
@@ -53,7 +45,7 @@ internal class DatalogRuleBuilder<T> : RuleBuilder<T> {
         .forEach { clause -> variables.addAll(clause.atoms.filterIsInstance<Variable>()) }
     when (this) {
       is CombinationRule -> Unit
-      is AggregationRule -> variables.add(this.result)
+      is AggregationRule -> variables.add(this.aggregate.result)
     }
     return variables
   }
@@ -107,10 +99,7 @@ internal class DatalogRuleBuilder<T> : RuleBuilder<T> {
     return AggregationRule(
         head = HeadLiteral(predicate, atoms),
         clause = clause,
-        operator = aggregate.operator,
-        same = aggregate.same,
-        columns = aggregate.columns,
-        result = aggregate.result,
+        aggregate = aggregate,
     )
   }
 }

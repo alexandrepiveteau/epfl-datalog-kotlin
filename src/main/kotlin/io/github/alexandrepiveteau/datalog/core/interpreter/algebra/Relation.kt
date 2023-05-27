@@ -1,6 +1,6 @@
 package io.github.alexandrepiveteau.datalog.core.interpreter.algebra
 
-import io.github.alexandrepiveteau.datalog.core.RuleBuilder.Aggregate
+import io.github.alexandrepiveteau.datalog.core.RuleBuilder.AggregationFunction
 import io.github.alexandrepiveteau.datalog.core.interpreter.algebra.Column.Index
 import io.github.alexandrepiveteau.datalog.core.rule.Fact
 import io.github.alexandrepiveteau.datalog.core.rule.Value
@@ -177,13 +177,13 @@ internal fun <T> Relation<T>.project(projection: List<Column<T>>): Relation<T> {
  * @param T the type of the elements in the relation.
  * @param column the [AggregationColumn] to get the value for.
  * @param indices the [Index]es of the [List] of [Value]s in the original relation.
- * @param aggregate the [Aggregate] to apply to the values in the same set.
+ * @param aggregate the [AggregationFunction] to apply to the values in the same set.
  * @param domain the [Domain] of the [List] of [Value]s.
  */
 private fun <T> Fact<T>.value(
     column: AggregationColumn<T>,
     indices: Set<Index>,
-    aggregate: Aggregate,
+    aggregate: AggregationFunction,
     domain: Domain<T>,
 ): Value<T> {
   return when (column) {
@@ -209,14 +209,14 @@ private fun <T> Fact<T>.value(
  * @param T the type of the elements in the relation.
  * @param first the first [List] of [Value]s to merge.
  * @param second the second [List] of [Value]s to merge.
- * @param aggregate the [Aggregate] to apply to the values in the same set.
+ * @param aggregate the [AggregationFunction] to apply to the values in the same set.
  * @param columns the [AggregationColumn]s to respect in the projected values.
  * @return the [List] of [Value]s resulting from the merge.
  */
 private fun <T> Domain<T>.merge(
     first: Fact<T>,
     second: Fact<T>,
-    aggregate: Aggregate,
+    aggregate: AggregationFunction,
     columns: List<AggregationColumn<T>>,
 ): Fact<T> {
   return columns.mapIndexed { index, column ->
@@ -236,14 +236,14 @@ private fun <T> Domain<T>.merge(
  * @param projection the [AggregationColumn]s to respect in the projected values.
  * @param same the set of [Index] which serve as the key for the aggregation.
  * @param domain the [Domain] of the [Relation].
- * @param aggregate the [Aggregate] to apply to the values in the same set.
+ * @param aggregate the [AggregationFunction] to apply to the values in the same set.
  * @param indices the [Index] of the columns to aggregate.
  */
 internal fun <T> Relation<T>.aggregate(
     projection: List<AggregationColumn<T>>,
     same: Set<Index>,
     domain: Domain<T>,
-    aggregate: Aggregate,
+    aggregate: AggregationFunction,
     indices: Set<Index>,
 ): Relation<T> {
   require(indices.all { it !in same }) { "The indices must not be in the same set." }

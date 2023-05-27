@@ -1,7 +1,6 @@
-package io.github.alexandrepiveteau.datalog.dsl
+package io.github.alexandrepiveteau.datalog.core.rule
 
-import io.github.alexandrepiveteau.datalog.core.RuleBuilder.Aggregate as CoreAggregate
-import io.github.alexandrepiveteau.datalog.core.rule.Variable
+import io.github.alexandrepiveteau.datalog.core.RuleBuilder
 
 /**
  * An aggregate which matches a list of variables.
@@ -12,7 +11,7 @@ import io.github.alexandrepiveteau.datalog.core.rule.Variable
  * @param result the result of the aggregation.
  */
 data class Aggregate(
-    val aggregate: CoreAggregate,
+    val aggregate: RuleBuilder.AggregationFunction,
     val same: Collection<Variable>,
     val columns: Collection<Variable>,
     val result: Variable,
