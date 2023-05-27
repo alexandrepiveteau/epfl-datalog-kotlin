@@ -3,7 +3,7 @@ package io.github.alexandrepiveteau.datalog.dsl
 import io.github.alexandrepiveteau.datalog.core.Algorithm
 import io.github.alexandrepiveteau.datalog.core.rule.Predicate
 import io.github.alexandrepiveteau.datalog.dsl.domains.domain
-import kotlin.test.assertEquals
+import io.kotest.matchers.shouldBe
 
 /**
  * A helper function that checks that the given [predicate] has values that match the values
@@ -25,9 +25,9 @@ fun DatalogScope<Int>.expect(
 ) {
   val expected = buildSet(values)
   val solution = solve(predicate, arity)
-  solution.forEach { assertEquals(arity, it.size) } // all terms have the right arity
+  solution.forEach { arity shouldBe it.size } // all terms have the right arity
   val res = solution.map { it.map { (v) -> v } }.toSet()
-  assertEquals(expected, res)
+  expected shouldBe res
 }
 
 /**

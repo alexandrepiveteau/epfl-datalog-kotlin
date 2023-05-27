@@ -2,25 +2,25 @@ package io.github.alexandrepiveteau.datalog.core.interpreter.algebra
 
 import io.github.alexandrepiveteau.datalog.core.RuleBuilder
 import io.github.alexandrepiveteau.datalog.dsl.domains.domain
-import kotlin.test.Test
-import kotlin.test.assertEquals
-import kotlin.test.assertTrue
+import io.kotest.core.spec.style.StringSpec
+import io.kotest.matchers.shouldBe
 
-class RelationTests {
+class RelationTests : StringSpec() {
+  init {
 
-  @Test
-  fun `aggregate on empty relation`() {
-    val relation = Relation.empty<Int>(2)
-    val aggregate =
-        relation.aggregate(
-            projection = emptyList(),
-            same = emptySet(),
-            domain = Int.domain(),
-            aggregate = RuleBuilder.Aggregate.Max,
-            indices = emptySet(),
-        )
+    "aggregate on empty relation" {
+      val relation = Relation.empty<Int>(2)
+      val aggregate =
+          relation.aggregate(
+              projection = emptyList(),
+              same = emptySet(),
+              domain = Int.domain(),
+              aggregate = RuleBuilder.Aggregate.Max,
+              indices = emptySet(),
+          )
 
-    assertEquals(0, aggregate.arity)
-    assertTrue(aggregate.tuples.isEmpty())
+      aggregate.arity shouldBe 0
+      aggregate.tuples.isEmpty() shouldBe true
+    }
   }
 }

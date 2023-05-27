@@ -1,55 +1,53 @@
 package io.github.alexandrepiveteau.datalog.dsl
 
 import io.github.alexandrepiveteau.datalog.core.NotGroundedException
-import kotlin.test.Test
-import kotlin.test.assertFailsWith
+import io.kotest.assertions.throwables.shouldThrow
+import io.kotest.core.spec.style.StringSpec
 
-class SafetyTests {
+class SafetyTests : StringSpec() {
+  init {
 
-  @Test
-  fun `rule with no variables used is not safe`() {
-    assertFailsWith<NotGroundedException> {
-      program {
-        val (a) = predicates()
-        val (x) = variables()
+    "rule with no variables used is not safe" {
+      shouldThrow<NotGroundedException> {
+        program {
+          val (a) = predicates()
+          val (x) = variables()
 
-        a(x) += empty
+          a(x) += empty
+        }
       }
     }
-  }
 
-  @Test
-  fun `rule with one variable not used is not safe`() {
-    assertFailsWith<NotGroundedException> {
-      program {
-        val (a, b) = predicates()
-        val (x, y) = variables()
+    "rule with one variable not used is not safe" {
+      shouldThrow<NotGroundedException> {
+        program {
+          val (a, b) = predicates()
+          val (x, y) = variables()
 
-        b(x, y) += a(y)
+          b(x, y) += a(y)
+        }
       }
     }
-  }
 
-  @Test
-  fun `rule with variable appearing only negative literal is not safe`() {
-    assertFailsWith<NotGroundedException> {
-      program {
-        val (a, b) = predicates()
-        val (x) = variables()
+    "rule with variable appearing only negative literal is not safe" {
+      shouldThrow<NotGroundedException> {
+        program {
+          val (a, b) = predicates()
+          val (x) = variables()
 
-        a(x) += !b(x)
+          a(x) += !b(x)
+        }
       }
     }
-  }
 
-  @Test
-  fun `aggregate of negative rule is not safe`() {
-    assertFailsWith<NotGroundedException> {
-      program {
-        val (a, b) = predicates()
-        val (x, s) = variables()
+    "aggregate of negative rule is not safe" {
+      shouldThrow<NotGroundedException> {
+        program {
+          val (a, b) = predicates()
+          val (x, s) = variables()
 
-        a(s) += !b(x) + count(setOf(x), s)
+          a(s) += !b(x) + count(setOf(x), s)
+        }
       }
     }
   }
