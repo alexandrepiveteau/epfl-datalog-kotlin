@@ -1,0 +1,4 @@
+palindrome(string,x,x):-str(string,x,ignored).
+palindrome(string,x,y):-str(string,x,char),str(string,y,char),succ(x,y).
+palindrome(string,from,end):-succ(from,fromPlusOne),succ(endMinusOne,end),palindrome(string,fromPlusOne,endMinusOne),str(string,from,char),str(string,end,char).
+palindrome(string):-len(string,l),palindrome(string,"0",end),succ(end,l).

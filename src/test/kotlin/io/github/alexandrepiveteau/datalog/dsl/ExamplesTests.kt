@@ -8,10 +8,7 @@ import io.github.alexandrepiveteau.datalog.core.rule.Predicate
 import io.github.alexandrepiveteau.datalog.core.rule.Value
 import io.github.alexandrepiveteau.datalog.dsl.domains.domain
 import io.github.alexandrepiveteau.datalog.parser.DatalogParser
-import io.github.alexandrepiveteau.datalog.parser.core.Parser
-import io.github.alexandrepiveteau.datalog.parser.core.all
-import io.github.alexandrepiveteau.datalog.parser.core.parse
-import io.github.alexandrepiveteau.datalog.parser.core.parser
+import io.github.alexandrepiveteau.datalog.parser.core.*
 import io.kotest.assertions.fail
 import io.kotest.core.spec.style.StringSpec
 import io.kotest.matchers.shouldBe
@@ -54,6 +51,7 @@ private fun testCase(program: File, case: File) {
   when (val type = File(case, "config.dl").readText().trim()) {
     "Int" -> testCase(Int.parser(), Int.domain(), program, case)
     "String" -> testCase(all(), String.domain(), program, case)
+    "String+Quotes" -> testCase(String.parserQuoted(), String.domain(), program, case)
     else -> fail("Unknown type: $type.")
   }
 }
