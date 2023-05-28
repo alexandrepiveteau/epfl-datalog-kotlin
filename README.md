@@ -41,6 +41,19 @@ Coming soon !
 + Designed with both a high-level and low-level API
 + Works on Kotlin/JVM. Kotlin/JS and Kotlin/Native coming soon !
 
+## Examples
+
+<details>
+<summary>Examples of Datalog programs</summary>
+<ul>
+<li><a href="./src/test/resources/examples/andersen/program.dl">andersen</a></li>
+<li><a href="./src/test/resources/examples/java_pointsto/program.dl">java_pointsto</a></li>
+<li><a href="./src/test/resources/examples/palindrome/program.dl">palindrome</a></li>
+<li><a href="./src/test/resources/examples/tc/program.dl">tc</a></li>
+<li><a href="./src/test/resources/examples/tc_neg/program.dl">tc_neg</a></li>
+</ul>
+</details>
+
 ## Usage
 
 Coming soon !
