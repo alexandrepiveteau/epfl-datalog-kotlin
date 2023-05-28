@@ -29,11 +29,19 @@ class ExamplesTests : StringSpec() {
   }
 }
 
+// File and folder names.
+private const val ExamplesFolder = "examples"
+private const val CasesFolder = "cases"
+private const val InputFolder = "input"
+private const val OutputFolder = "output"
+private const val ProgramFile = "program.dl"
+private const val ConfigFile = "config.dl"
+
 /** Returns a [Sequence] of all the folders in the `examples` folder. */
 private fun examples(): Sequence<File> {
   return sequence {
     val classLoader = Thread.currentThread().contextClassLoader
-    val path = classLoader.getResource("examples")?.path ?: return@sequence
+    val path = classLoader.getResource(ExamplesFolder)?.path ?: return@sequence
     val files = File(path).listFiles() ?: return@sequence
     yieldAll(files.asSequence())
   }
@@ -42,14 +50,14 @@ private fun examples(): Sequence<File> {
 /** Returns all the cases in the given [folder]. */
 private fun cases(folder: File): Sequence<File> {
   return sequence {
-    val files = File(folder, "cases").listFiles() ?: return@sequence
+    val files = File(folder, CasesFolder).listFiles() ?: return@sequence
     yieldAll(files.asSequence())
   }
 }
 
 /** Runs a test case. */
 private fun testCase(program: File, case: File) {
-  when (val type = File(case, "config.dl").readText().trim()) {
+  when (val type = File(case, ConfigFile).readText().trim()) {
     "Int" -> testCase(Int.parser(), Int.domain(), program, case)
     "String" -> testCase(all(), String.domain(), program, case)
     "String+Quotes" -> testCase(String.parserQuoted(), String.domain(), program, case)
@@ -59,9 +67,9 @@ private fun testCase(program: File, case: File) {
 
 /** Runs a test case of type [T]. */
 private fun <T : Any> testCase(constants: Parser<T>, domain: Domain<T>, program: File, case: File) {
-  val inputs = File(case, "input").listFiles() ?: fail("No input folder in $case")
-  val outputs = File(case, "output").listFiles() ?: fail("No output folder in $case")
-  val programFile = File(program, "program.dl")
+  val inputs = File(case, InputFolder).listFiles() ?: fail("No input folder in $case")
+  val outputs = File(case, OutputFolder).listFiles() ?: fail("No output folder in $case")
+  val programFile = File(program, ProgramFile)
 
   val rules = rules(constants, programFile)
 
