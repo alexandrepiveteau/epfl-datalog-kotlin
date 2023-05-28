@@ -4,14 +4,14 @@ package io.github.alexandrepiveteau.datalog.parser.core
 
 /** A [Parser] for a [String] token. */
 fun token(text: String): Parser<String> = Parser { state ->
-  if (state.input.startsWith(text, state.from)) {
+  if (state.input.startsWith(text, startIndex = state.from)) {
     Parser.Result.Success(text, state.copy(from = state.from + text.length))
   } else Parser.Result.Failure
 }
 
 /** A [Parser] for a [Regex] token. */
 fun regexToken(text: Regex): Parser<String> = Parser { state ->
-  when (val result = text.find(state.input, state.from)) {
+  when (val result = text.find(state.input, startIndex = state.from)) {
     null -> Parser.Result.Failure
     else -> {
       if (result.range.first != state.from) Parser.Result.Failure
