@@ -46,6 +46,7 @@ Coming soon !
 <details>
 <summary>Examples of Datalog programs</summary>
 <ul>
+<li><a href="./src/test/resources/examples/agg_distinct/program.dl">agg_distinct</a></li>
 <li><a href="./src/test/resources/examples/andersen/program.dl">andersen</a></li>
 <li><a href="./src/test/resources/examples/java_pointsto/program.dl">java_pointsto</a></li>
 <li><a href="./src/test/resources/examples/palindrome/program.dl">palindrome</a></li>
