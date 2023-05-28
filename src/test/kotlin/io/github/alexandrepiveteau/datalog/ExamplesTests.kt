@@ -27,6 +27,7 @@ class ExamplesTests : StringSpec() {
     }
   }
 }
+
 /** Returns a [Sequence] of all the folders in the `examples` folder. */
 private fun examples(): Sequence<File> {
   return sequence {
