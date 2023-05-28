@@ -3,7 +3,8 @@ package io.github.alexandrepiveteau.datalog.core.interpreter.algebra
 import io.github.alexandrepiveteau.datalog.core.RuleBuilder
 import io.github.alexandrepiveteau.datalog.dsl.domains.domain
 import io.kotest.core.spec.style.StringSpec
-import io.kotest.matchers.shouldBe
+import io.kotest.matchers.collections.shouldBeEmpty
+import io.kotest.matchers.ints.shouldBeZero
 
 class RelationTests : StringSpec() {
   init {
@@ -19,8 +20,8 @@ class RelationTests : StringSpec() {
               indices = emptySet(),
           )
 
-      aggregate.arity shouldBe 0
-      aggregate.tuples.isEmpty() shouldBe true
+      aggregate.arity.shouldBeZero()
+      aggregate.tuples.shouldBeEmpty()
     }
   }
 }
