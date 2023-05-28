@@ -5,6 +5,7 @@ import io.github.alexandrepiveteau.datalog.core.Domain
 import io.github.alexandrepiveteau.datalog.core.ProgramBuilder
 import io.github.alexandrepiveteau.datalog.core.rule.Fact
 import io.github.alexandrepiveteau.datalog.core.rule.Predicate
+import io.github.alexandrepiveteau.datalog.core.rule.Rule
 import io.github.alexandrepiveteau.datalog.core.rule.Value
 import io.github.alexandrepiveteau.datalog.dsl.domains.domain
 import io.github.alexandrepiveteau.datalog.parser.DatalogParser
@@ -62,8 +63,7 @@ private fun <T : Any> testCase(constants: Parser<T>, domain: Domain<T>, program:
   val outputs = File(case, "output").listFiles() ?: fail("No output folder in $case")
   val programFile = File(program, "program.dl")
 
-  val parser = DatalogParser(constants)
-  val rules = programFile.readLines().map { parser.parse(it) ?: fail("Bad rule: $it.") }
+  val rules = rules(constants, programFile)
 
   for (algorithm in Algorithm.values()) {
     // 1. Prepare the program.
@@ -85,6 +85,13 @@ private fun <T : Any> testCase(constants: Parser<T>, domain: Domain<T>, program:
       facts shouldBe expected
     }
   }
+}
+
+/** Returns all the [Rule]s from a file. */
+private fun <T : Any> rules(constants: Parser<T>, program: File): List<Rule<T>> {
+  val ruleParser = DatalogParser(constants)
+  val ws = regexToken(Regex("\\s*"))
+  return separated(ruleParser, ws).parse(program.readText()) ?: fail("Bad program.")
 }
 
 /** Returns all the [Fact]s from a file. */

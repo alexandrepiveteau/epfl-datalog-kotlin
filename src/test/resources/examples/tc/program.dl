@@ -1,3 +1,4 @@
 tc(x,y):-e(x,y).
 tc(x,y):-e(x,z),tc(z,y).
+
 r(x):-tc(1,x).

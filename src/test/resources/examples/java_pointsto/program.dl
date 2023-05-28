@@ -1,32 +1,83 @@
 InstanceVar(varVar):-LoadInstanceFieldIndex(varVar,any1,any2,any3).
 InstanceVar(varVar):-StoreInstanceFieldIndex(any1,varVar,any2,any3).
+
 Superclass(sub,superVar):-DirectSuperclass(sub,superVar).
 Superclass(sub,superVar):-Superclass(sub,x),DirectSuperclass(x,superVar).
+
 Supertype(sub,superVar):-Superclass(sub,superVar).
 Supertype(typeVar,interface):-DirectSuperinterface(typeVar,interface).
+
 Invocation(callsite,calledMethod):-SpecialMethodInvocationSignature(callsite,calledMethod).
 Invocation(callsite,calledMethod):-StaticMethodInvocationSignature(callsite,calledMethod).
 Invocation(callsite,calledMethod):-VirtualMethodInvocationSignature(callsite,calledMethod).
+
 InvocationBase(callsite,varVar):-VirtualMethodInvocationBase(callsite,varVar).
 InvocationBase(callsite,varVar):-SpecialMethodInvocationBase(callsite,varVar).
+
 InstanceVarType(varVar,typeVar):-VarType(varVar,typeVar),InstanceVar(varVar).
+
 InstanceTypes(x):-Supertype(x,any1),InstanceVarType(any2,x).
 InstanceTypes(x):-Supertype(any1,x),InstanceVarType(any2,x).
+
 IsInstanceTypeCompatible(sub,superVar):-Supertype(sub,superVar).
 IsInstanceTypeCompatible(t,t):-InstanceTypes(t).
+
 InstanceTypeComparable(typeVar1,typeVar2):-IsInstanceTypeCompatible(typeVar1,typeVar2).
 InstanceTypeComparable(typeVar1,typeVar2):-IsInstanceTypeCompatible(typeVar2,typeVar1).
-ComparableInstanceVar(varVar1,varVar2):-InstanceVarType(varVar1,typeVar1),InstanceVarType(varVar2,typeVar2),InstanceTypeComparable(typeVar1,typeVar2).
-Assign(localVarAssigned,localVarAssignedTo):-AssignLocal(localVarAssigned,localVarAssignedTo,any1).
-Assign(actualParam,formalParam):-Invocation(callsite,method),FormalParam(index,method,formalParam),ActualParam(index,callsite,actualParam).
-Assign(returnVar,localVar):-ReturnVar(returnVar,method),Invocation(callsite,method),AssignReturnValue(callsite,localVar).
-Assign(base,thisVar):-InvocationBase(callsite,base),Invocation(callsite,method),ThisVar(method,thisVar).
-VarPointsTo(varVar,heap):-AssignHeapAllocation(heap,varVar,any1).
-VarPointsTo(varVar1,heap):-Assign(varVar2,varVar1),VarPointsTo(varVar2,heap).
-VarPointsTo(varVar1,heap):-AssignCast(typeVar,varVar2,varVar1,any1),VarPointsTo(varVar2,heap),HeapAllocationType(heap,typeVar).
-VarPointsTo(varVar1,heap):-AssignCast(varVarType,varVar2,varVar1,any1),VarPointsTo(varVar2,heap),HeapAllocationType(heap,heapType),Supertype(heapType,varVarType).
-InstanceVarPointsTo(varVar1,varVar2):-InstanceVar(varVar1),VarPointsTo(varVar1,varVar2).
-LoadInstanceVarPointsTo(varVar,heap):-InstanceVarPointsTo(varVar,heap),LoadInstanceFieldIndex(varVar,any1,any2,any3).
-StoreInstanceVarPointsTo(varVar,heap):-InstanceVarPointsTo(varVar,heap),StoreInstanceFieldIndex(any1,varVar,any2,any3).
-Alias(v1,v2):-LoadInstanceVarPointsTo(v1,h),StoreInstanceVarPointsTo(v2,h),InstanceVarType(v1,t1),InstanceVarType(v2,t2),InstanceTypeComparable(t1,t2).
-Assign(storedVar,varAssignedTo):-Alias(iLoadVar,iStoreVar),StoreInstanceFieldIndex(storedVar,iStoreVar,field,any1),LoadInstanceFieldIndex(iLoadVar,field,varAssignedTo,any2).
+
+ComparableInstanceVar(varVar1,varVar2):-
+    InstanceVarType(varVar1,typeVar1),
+    InstanceVarType(varVar2,typeVar2),
+    InstanceTypeComparable(typeVar1,typeVar2).
+
+Assign(localVarAssigned,localVarAssignedTo):-
+    AssignLocal(localVarAssigned,localVarAssignedTo,any1).
+Assign(actualParam,formalParam):-
+    Invocation(callsite,method),
+    FormalParam(index,method,formalParam),
+    ActualParam(index,callsite,actualParam).
+Assign(returnVar,localVar):-
+    ReturnVar(returnVar,method),
+    Invocation(callsite,method),
+    AssignReturnValue(callsite,localVar).
+Assign(base,thisVar):-
+    InvocationBase(callsite,base),
+    Invocation(callsite,method),
+    ThisVar(method,thisVar).
+
+VarPointsTo(varVar,heap):-
+    AssignHeapAllocation(heap,varVar,any1).
+VarPointsTo(varVar1,heap):-
+    Assign(varVar2,varVar1),
+    VarPointsTo(varVar2,heap).
+VarPointsTo(varVar1,heap):-
+    AssignCast(typeVar,varVar2,varVar1,any1),
+    VarPointsTo(varVar2,heap),
+    HeapAllocationType(heap,typeVar).
+VarPointsTo(varVar1,heap):-
+    AssignCast(varVarType,varVar2,varVar1,any1),
+    VarPointsTo(varVar2,heap),
+    HeapAllocationType(heap,heapType),
+    Supertype(heapType,varVarType).
+
+InstanceVarPointsTo(varVar1,varVar2):-
+    InstanceVar(varVar1),
+    VarPointsTo(varVar1,varVar2).
+
+LoadInstanceVarPointsTo(varVar,heap):-
+    InstanceVarPointsTo(varVar,heap),
+    LoadInstanceFieldIndex(varVar,any1,any2,any3).
+
+StoreInstanceVarPointsTo(varVar,heap):-
+    InstanceVarPointsTo(varVar,heap),StoreInstanceFieldIndex(any1,varVar,any2,any3).
+
+Alias(v1,v2):-LoadInstanceVarPointsTo(v1,h),
+    StoreInstanceVarPointsTo(v2,h),
+    InstanceVarType(v1,t1),
+    InstanceVarType(v2,t2),
+    InstanceTypeComparable(t1,t2).
+
+Assign(storedVar,varAssignedTo):-
+    Alias(iLoadVar,iStoreVar),
+    StoreInstanceFieldIndex(storedVar,iStoreVar,field,any1),
+    LoadInstanceFieldIndex(iLoadVar,field,varAssignedTo,any2).
