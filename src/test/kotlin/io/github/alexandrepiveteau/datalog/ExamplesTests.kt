@@ -1,4 +1,4 @@
-package io.github.alexandrepiveteau.datalog.dsl
+package io.github.alexandrepiveteau.datalog
 
 import io.github.alexandrepiveteau.datalog.core.Algorithm
 import io.github.alexandrepiveteau.datalog.core.Domain
@@ -27,7 +27,6 @@ class ExamplesTests : StringSpec() {
     }
   }
 }
-
 /** Returns a [Sequence] of all the folders in the `examples` folder. */
 private fun examples(): Sequence<File> {
   return sequence {
