@@ -54,10 +54,10 @@ class DatalogParser<out T>(constant: Parser<T>) : Parser<Rule<T>> {
           -rpar and
           -comma and
           -lpar and
-          variables and
+          variables and // columns
           -rpar and
           -comma and
-          variable and
+          variable and // result
           -rpar) map { (agg, same, columns, result) -> Aggregate(agg, same, columns, result) }
 
   private val aggregationRule =
