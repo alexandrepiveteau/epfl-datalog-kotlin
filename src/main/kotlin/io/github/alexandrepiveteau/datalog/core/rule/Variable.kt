@@ -5,4 +5,4 @@ package io.github.alexandrepiveteau.datalog.core.rule
  *
  * @param id the unique identifier of the variable, which gives its identity to the variable.
  */
-data class Variable(val id: Int) : Atom<Nothing>
+data class Variable(val id: Any) : Atom<Nothing>
