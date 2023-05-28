@@ -142,7 +142,7 @@ private fun <T> Context<T>.evalRuleIncremental(
   require(rule.body.size == incremental.size) { "Not the same number of relations and clauses." }
   var result = Relation.empty<T>(rule.head.arity)
   for (i in 0 until rule.body.size) {
-    val args = List(rule.body.size) { index -> if (index == i) incremental[i] else relations[i] }
+    val args = List(rule.body.size) { if (it == i) incremental[it] else relations[it] }
     result = result.union(evalRule(rule, args))
   }
   return result.distinct()
