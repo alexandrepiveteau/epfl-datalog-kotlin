@@ -1,14 +1,10 @@
 package io.github.alexandrepiveteau.datalog.core.interpreter
 
-import io.github.alexandrepiveteau.datalog.core.Algorithm
-import io.github.alexandrepiveteau.datalog.core.Program
-import io.github.alexandrepiveteau.datalog.core.ProgramBuilder
-import io.github.alexandrepiveteau.datalog.core.RuleBuilder
+import io.github.alexandrepiveteau.datalog.core.*
 import io.github.alexandrepiveteau.datalog.core.rule.Atom
 import io.github.alexandrepiveteau.datalog.core.rule.Predicate
 import io.github.alexandrepiveteau.datalog.core.rule.Rule
 import io.github.alexandrepiveteau.datalog.core.rule.Variable
-import io.github.alexandrepiveteau.datalog.core.Domain
 
 /**
  * An implementation of [ProgramBuilder] which can be used to build a [Program].
@@ -32,6 +28,10 @@ internal class DatalogProgramBuilder<T>(
 
   override fun rule(predicate: Predicate, atoms: List<Atom<T>>, block: RuleBuilder<T>.() -> Unit) {
     rules.add(DatalogRuleBuilder<T>().apply(block).toRule(predicate, atoms))
+  }
+
+  override fun rule(rule: Rule<T>) {
+    rules.add(rule)
   }
 
   override fun build(): Program<T> = DatalogProgram(domain, rules, algorithm)

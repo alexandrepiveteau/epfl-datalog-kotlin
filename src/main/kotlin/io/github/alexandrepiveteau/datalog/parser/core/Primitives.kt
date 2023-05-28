@@ -30,3 +30,7 @@ fun end(): Parser<Unit> = Parser { state ->
 
 /** A [Parser] for [Int] values. */
 fun Int.Companion.parser(): Parser<Int> = regexToken(Regex("-?[0-9]+")).map { it.toInt() }
+
+/** A [Parser] for [String] values between quotes. */
+fun String.Companion.parser(): Parser<String> =
+    regexToken(Regex("\"[^\"]*\"")).map { it.drop(1).dropLast(1) }

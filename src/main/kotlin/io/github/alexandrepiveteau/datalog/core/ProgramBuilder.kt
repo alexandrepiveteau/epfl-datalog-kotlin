@@ -1,10 +1,7 @@
 package io.github.alexandrepiveteau.datalog.core
 
 import io.github.alexandrepiveteau.datalog.core.interpreter.DatalogProgramBuilder
-import io.github.alexandrepiveteau.datalog.core.rule.Atom
-import io.github.alexandrepiveteau.datalog.core.rule.Fact
-import io.github.alexandrepiveteau.datalog.core.rule.Predicate
-import io.github.alexandrepiveteau.datalog.core.rule.Variable
+import io.github.alexandrepiveteau.datalog.core.rule.*
 
 /**
  * A [ProgramBuilder] is a mutable builder for [Program] instances. It is used to build a [Program]
@@ -36,6 +33,13 @@ interface ProgramBuilder<T> {
    * @param block the [RuleBuilder] which will be used to build the body of the rule.
    */
   fun rule(predicate: Predicate, atoms: List<Atom<T>>, block: RuleBuilder<T>.() -> Unit)
+
+  /**
+   * Adds a new rule to the program.
+   *
+   * @param rule the [Rule] to add to the program.
+   */
+  fun rule(rule: Rule<T>)
 
   /** Returns a [Program] built from the current builder, and on which results can be computed. */
   fun build(): Program<T>

@@ -37,6 +37,8 @@ internal class DatalogRuleBuilder<T> : RuleBuilder<T> {
     aggregates.add(Aggregate(operator, same, columns, result))
   }
 
+  // TODO : Move these checks to the DatalogProgramBuilder rather than having them in the
+  //        DatalogRuleBuilder.
   private fun Rule<T>.limited(): Set<Variable> {
     val variables = mutableSetOf<Variable>()
     body
