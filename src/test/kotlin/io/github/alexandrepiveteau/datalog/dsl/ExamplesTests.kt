@@ -1,12 +1,15 @@
 package io.github.alexandrepiveteau.datalog.dsl
 
 import io.github.alexandrepiveteau.datalog.core.Algorithm
+import io.github.alexandrepiveteau.datalog.core.Domain
 import io.github.alexandrepiveteau.datalog.core.ProgramBuilder
 import io.github.alexandrepiveteau.datalog.core.rule.Fact
 import io.github.alexandrepiveteau.datalog.core.rule.Predicate
 import io.github.alexandrepiveteau.datalog.core.rule.Value
 import io.github.alexandrepiveteau.datalog.dsl.domains.domain
 import io.github.alexandrepiveteau.datalog.parser.DatalogParser
+import io.github.alexandrepiveteau.datalog.parser.core.Parser
+import io.github.alexandrepiveteau.datalog.parser.core.all
 import io.github.alexandrepiveteau.datalog.parser.core.parse
 import io.github.alexandrepiveteau.datalog.parser.core.parser
 import io.kotest.assertions.fail
@@ -46,29 +49,32 @@ private fun cases(folder: File): Sequence<File> {
   }
 }
 
-/** Returns all the [Fact]s from a file. */
-private fun facts(file: File): List<Fact<Int>> {
-  val lines = file.readLines()
-  return lines.map { it.split(",").map { n -> Value(n.toInt()) } }
-}
-
 /** Runs a test case. */
 private fun testCase(program: File, case: File) {
+  when (val type = File(case, "config.dl").readText().trim()) {
+    "Int" -> testCase(Int.parser(), Int.domain(), program, case)
+    "String" -> testCase(all(), String.domain(), program, case)
+    else -> fail("Unknown type: $type.")
+  }
+}
+
+/** Runs a test case of type [T]. */
+private fun <T : Any> testCase(constants: Parser<T>, domain: Domain<T>, program: File, case: File) {
   val inputs = File(case, "input").listFiles() ?: fail("No input folder in $case")
   val outputs = File(case, "output").listFiles() ?: fail("No output folder in $case")
   val programFile = File(program, "program.dl")
 
-  val parser = DatalogParser(Int.parser())
+  val parser = DatalogParser(constants)
   val rules = programFile.readLines().map { parser.parse(it) ?: fail("Bad rule: $it.") }
 
   for (algorithm in Algorithm.values()) {
     // 1. Prepare the program.
-    val builder = ProgramBuilder(Int.domain(), algorithm)
+    val builder = ProgramBuilder(domain, algorithm)
     for (rule in rules) builder.rule(rule)
     for (file in inputs) {
       val relation = file.name.split(".").first()
       val predicate = Predicate(relation)
-      facts(file).forEach { builder.fact(predicate, it) }
+      facts(constants, file).forEach { builder.fact(predicate, it) }
     }
 
     // 2. Run the program for each tested relation.
@@ -77,8 +83,14 @@ private fun testCase(program: File, case: File) {
       val (relation, arity) = file.name.split(".")
       val predicate = Predicate(relation)
       val facts = datalog.solve(predicate, arity.toInt()).toSet()
-      val expected = facts(file).toSet()
+      val expected = facts(constants, file).toSet()
       facts shouldBe expected
     }
   }
+}
+
+/** Returns all the [Fact]s from a file. */
+private fun <T : Any> facts(constants: Parser<T>, file: File): List<Fact<T>> {
+  val lines = file.readLines()
+  return lines.map { it.split(",").map { v -> Value(constants.parse(v) ?: fail("Bad value.")) } }
 }
