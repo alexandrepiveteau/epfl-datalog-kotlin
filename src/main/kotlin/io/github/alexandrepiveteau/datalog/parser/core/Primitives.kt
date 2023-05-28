@@ -14,8 +14,8 @@ fun regexToken(text: Regex): Parser<String> = Parser { state ->
   when (val result = text.find(state.input, state.from)) {
     null -> Parser.Result.Failure
     else -> {
-      val match = result.value
-      Parser.Result.Success(match, state.copy(from = state.from + match.length))
+      if (result.range.first != state.from) Parser.Result.Failure
+      else Parser.Result.Success(result.value, state.copy(from = state.from + result.value.length))
     }
   }
 }
