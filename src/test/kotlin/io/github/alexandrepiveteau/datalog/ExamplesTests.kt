@@ -91,7 +91,7 @@ private fun <T : Any> testCase(constants: Parser<T>, domain: Domain<T>, program:
 private fun <T : Any> rules(constants: Parser<T>, program: File): List<Rule<T>> {
   val ruleParser = DatalogParser(constants)
   val ws = regexToken(Regex("\\s*"))
-  return separated(ruleParser, ws).parse(program.readText()) ?: fail("Bad program.")
+  return (separated(ruleParser, ws) and -end()).parse(program.readText()) ?: fail("Bad program.")
 }
 
 /** Returns all the [Fact]s from a file. */
