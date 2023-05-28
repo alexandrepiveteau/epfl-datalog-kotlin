@@ -1,9 +1,15 @@
 package io.github.alexandrepiveteau.datalog.core.interpreter
 
-import io.github.alexandrepiveteau.datalog.core.interpreter.algebra.*
+import io.github.alexandrepiveteau.datalog.core.interpreter.algebra.AggregationColumn
+import io.github.alexandrepiveteau.datalog.core.interpreter.algebra.Column
 import io.github.alexandrepiveteau.datalog.core.interpreter.algebra.Column.Constant
 import io.github.alexandrepiveteau.datalog.core.interpreter.algebra.Column.Index
+import io.github.alexandrepiveteau.datalog.core.interpreter.algebra.Relation
+import io.github.alexandrepiveteau.datalog.core.interpreter.algebra.minus
 import io.github.alexandrepiveteau.datalog.core.interpreter.database.*
+import io.github.alexandrepiveteau.datalog.core.interpreter.ir.LogicalIROp
+import io.github.alexandrepiveteau.datalog.core.interpreter.ir.LogicalIROp.*
+import io.github.alexandrepiveteau.datalog.core.interpreter.ir.compute
 import io.github.alexandrepiveteau.datalog.core.rule.*
 
 /**
@@ -67,7 +73,10 @@ private fun <T> selection(rule: List<Atom<T>>): Set<Set<Column<T>>> {
  * @param rule the [Rule] to evaluate.
  * @param relations the [Relation]s to evaluate the rule against.
  */
-private fun <T> Context<T>.evalRule(rule: Rule<T>, relations: List<Relation<T>>): Relation<T> {
+private fun <T> Context<T>.evalRule(
+    rule: Rule<T>,
+    relations: List<LogicalIROp<T>>,
+): LogicalIROp<T> {
   return when (rule) {
     is CombinationRule -> evalCombinationRule(rule, relations)
     is AggregationRule -> evalAggregationRule(rule, relations.single())
@@ -77,8 +86,8 @@ private fun <T> Context<T>.evalRule(rule: Rule<T>, relations: List<Relation<T>>)
 /** @see evalRule */
 private fun <T> Context<T>.evalCombinationRule(
     rule: CombinationRule<T>,
-    relations: List<Relation<T>>
-): Relation<T> {
+    relations: List<LogicalIROp<T>>
+): LogicalIROp<T> {
   require(rule.body.size == relations.size) { "Not the same number of relations and clauses." }
   // 1. Negate all the relations that are negated in the rule.
   // 2. Generate a concatenation of all atoms in the rule, after the join.
@@ -87,14 +96,14 @@ private fun <T> Context<T>.evalCombinationRule(
   // 5. Project the rows to the correct indices, and add constants to the projection.
   val negated = relations.mapIndexed { idx, r -> if (rule.body[idx].negated) r.negated() else r }
   val concat = rule.body.flatMap { it.atoms.toList() }
-  return negated.join().select(selection(concat)).project(projection(rule.head.atoms, concat))
+  return Project(Select(Join(negated), selection(concat)), projection(rule.head.atoms, concat))
 }
 
 /** @see evalRule */
 private fun <T> Context<T>.evalAggregationRule(
     rule: AggregationRule<T>,
-    relation: Relation<T>,
-): Relation<T> {
+    relation: LogicalIROp<T>,
+): LogicalIROp<T> {
   // 1. Negate the relation if the rule is negated.
   // 2. Perform the aggregation.
   val negated = if (rule.clause.negated) relation.negated() else relation
@@ -110,7 +119,8 @@ private fun <T> Context<T>.evalAggregationRule(
   val same = rule.aggregate.same.mapTo(mutableSetOf()) { Index(rule.clause.atoms.indexOf(it)) }
   val indices =
       rule.aggregate.columns.mapTo(mutableSetOf()) { Index(rule.clause.atoms.indexOf(it)) }
-  return negated.aggregate(
+  return LogicalIROp.Aggregate(
+      relation = negated,
       projection = projection,
       same = same,
       domain = domain,
@@ -135,17 +145,17 @@ private fun <T> Context<T>.evalAggregationRule(
  */
 private fun <T> Context<T>.evalRuleIncremental(
     rule: Rule<T>,
-    relations: List<Relation<T>>,
-    incremental: List<Relation<T>>,
-): Relation<T> {
+    relations: List<LogicalIROp<T>>,
+    incremental: List<LogicalIROp<T>>,
+): LogicalIROp<T> {
   require(rule.body.size == relations.size) { "Not the same number of relations and clauses." }
   require(rule.body.size == incremental.size) { "Not the same number of relations and clauses." }
-  var result = Relation.empty<T>(rule.head.arity)
+  var result: LogicalIROp<T> = Empty(rule.head.arity)
   for (i in 0 until rule.body.size) {
     val args = List(rule.body.size) { if (it == i) incremental[it] else relations[it] }
-    result = result.union(evalRule(rule, args))
+    result = Union(result, evalRule(rule, args))
   }
-  return result.distinct()
+  return Distinct(result)
 }
 
 /**
@@ -165,15 +175,15 @@ private fun <T> Context<T>.eval(
     idb: RulesDatabase<T>,
     base: FactsDatabase<T>,
     derived: FactsDatabase<T>,
-): Relation<T> {
+): LogicalIROp<T> {
   val rules = idb[predicate]
-  var result = Relation.empty<T>(predicate.arity)
+  var result: LogicalIROp<T> = Empty(predicate.arity)
   val facts = base + derived
   for (rule in rules) {
-    val list = rule.body.map { facts[PredicateWithArity(it.predicate, it.arity)] }
-    result = result.union(evalRule(rule, list))
+    val list = rule.body.map { Scan(facts[PredicateWithArity(it.predicate, it.arity)]) }
+    result = Union(result, evalRule(rule, list))
   }
-  return result.distinct()
+  return Distinct(result)
 }
 
 /**
@@ -193,17 +203,17 @@ private fun <T> Context<T>.evalIncremental(
     base: FactsDatabase<T>,
     derived: FactsDatabase<T>,
     delta: FactsDatabase<T>,
-): Relation<T> {
+): LogicalIROp<T> {
   val rules = idb[predicate]
-  var result = Relation.empty<T>(predicate.arity)
+  var result: LogicalIROp<T> = Empty(predicate.arity)
   val factsBase = base + derived
   val factsDelta = base + delta // Negation needs base facts to be present in the delta.
   for (rule in rules) {
-    val baseList = rule.body.map { factsBase[PredicateWithArity(it.predicate, it.arity)] }
-    val deltaList = rule.body.map { factsDelta[PredicateWithArity(it.predicate, it.arity)] }
-    result = result.union(evalRuleIncremental(rule, baseList, deltaList))
+    val baseList = rule.body.map { Scan(factsBase[PredicateWithArity(it.predicate, it.arity)]) }
+    val deltaList = rule.body.map { Scan(factsDelta[PredicateWithArity(it.predicate, it.arity)]) }
+    result = Union(result, evalRuleIncremental(rule, baseList, deltaList))
   }
-  return result.distinct()
+  return Distinct(result)
 }
 
 /** [naiveEval] takes an [RulesDatabase] and a base [FactsDatabase], and derives new facts. */
@@ -216,7 +226,7 @@ internal fun <T> Context<T>.naiveEval(
 
   do {
     for (predicate in idb) copy[predicate] = rels[predicate]
-    for (predicate in idb) rels[predicate] = eval(predicate, idb, base, rels)
+    for (predicate in idb) rels[predicate] = eval(predicate, idb, base, rels).compute()
   } while (rels != copy)
 
   return rels
@@ -232,15 +242,15 @@ internal fun <T> Context<T>.semiNaiveEval(
   val copy = MutableFactsDatabase.empty<T>()
 
   for (predicate in idb) {
-    val res = eval(predicate, idb, edb, MutableFactsDatabase.empty<T>())
-    rels[predicate] = res
-    delta[predicate] = res
+    val res = eval(predicate, idb, edb, MutableFactsDatabase.empty())
+    rels[predicate] = res.compute()
+    delta[predicate] = res.compute()
   }
 
   do {
     for (p in idb) copy[p] = delta[p]
     for (p in idb) {
-      val facts = evalIncremental(p, idb, edb, rels, copy)
+      val facts = evalIncremental(p, idb, edb, rels, copy).compute()
       val existing = rels[p]
       delta[p] = facts - existing
     }

@@ -1,10 +1,9 @@
 package io.github.alexandrepiveteau.datalog.core.interpreter
 
-import io.github.alexandrepiveteau.datalog.core.interpreter.algebra.Relation
-import io.github.alexandrepiveteau.datalog.core.interpreter.algebra.domain
-import io.github.alexandrepiveteau.datalog.core.interpreter.algebra.minus
-import io.github.alexandrepiveteau.datalog.core.rule.Value
 import io.github.alexandrepiveteau.datalog.core.Domain
+import io.github.alexandrepiveteau.datalog.core.interpreter.ir.LogicalIROp
+import io.github.alexandrepiveteau.datalog.core.interpreter.ir.LogicalIROp.*
+import io.github.alexandrepiveteau.datalog.core.rule.Value
 
 /**
  * The context in which the evaluation is taking place.
@@ -17,6 +16,6 @@ internal data class Context<T>(
     val domain: Domain<T>,
 ) {
 
-  /** Negates the [Relation] in this [Context]. */
-  internal fun Relation<T>.negated(): Relation<T> = Relation.domain(arity, atoms) - this
+  /** Negates the [LogicalIROp] in this [Context]. */
+  internal fun LogicalIROp<T>.negated(): LogicalIROp<T> = Minus(Domain(arity, atoms.toSet()), this)
 }
