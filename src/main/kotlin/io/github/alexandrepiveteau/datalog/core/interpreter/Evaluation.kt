@@ -5,11 +5,12 @@ import io.github.alexandrepiveteau.datalog.core.interpreter.algebra.Column
 import io.github.alexandrepiveteau.datalog.core.interpreter.algebra.Column.Constant
 import io.github.alexandrepiveteau.datalog.core.interpreter.algebra.Column.Index
 import io.github.alexandrepiveteau.datalog.core.interpreter.algebra.Relation
-import io.github.alexandrepiveteau.datalog.core.interpreter.algebra.minus
-import io.github.alexandrepiveteau.datalog.core.interpreter.database.*
-import io.github.alexandrepiveteau.datalog.core.interpreter.ir.LogicalIROp
-import io.github.alexandrepiveteau.datalog.core.interpreter.ir.LogicalIROp.*
-import io.github.alexandrepiveteau.datalog.core.interpreter.ir.compute
+import io.github.alexandrepiveteau.datalog.core.interpreter.database.PredicateWithArity
+import io.github.alexandrepiveteau.datalog.core.interpreter.database.RulesDatabase
+import io.github.alexandrepiveteau.datalog.core.interpreter.ir.Database
+import io.github.alexandrepiveteau.datalog.core.interpreter.ir.IROp
+import io.github.alexandrepiveteau.datalog.core.interpreter.ir.IROp.*
+import io.github.alexandrepiveteau.datalog.core.interpreter.ir.IROp.RelationalIROp.*
 import io.github.alexandrepiveteau.datalog.core.rule.*
 
 /**
@@ -75,8 +76,8 @@ private fun <T> selection(rule: List<Atom<T>>): Set<Set<Column<T>>> {
  */
 private fun <T> Context<T>.evalRule(
     rule: Rule<T>,
-    relations: List<LogicalIROp<T>>,
-): LogicalIROp<T> {
+    relations: List<RelationalIROp<T>>,
+): RelationalIROp<T> {
   return when (rule) {
     is CombinationRule -> evalCombinationRule(rule, relations)
     is AggregationRule -> evalAggregationRule(rule, relations.single())
@@ -86,8 +87,8 @@ private fun <T> Context<T>.evalRule(
 /** @see evalRule */
 private fun <T> Context<T>.evalCombinationRule(
     rule: CombinationRule<T>,
-    relations: List<LogicalIROp<T>>
-): LogicalIROp<T> {
+    relations: List<RelationalIROp<T>>
+): RelationalIROp<T> {
   require(rule.body.size == relations.size) { "Not the same number of relations and clauses." }
   // 1. Negate all the relations that are negated in the rule.
   // 2. Generate a concatenation of all atoms in the rule, after the join.
@@ -102,8 +103,8 @@ private fun <T> Context<T>.evalCombinationRule(
 /** @see evalRule */
 private fun <T> Context<T>.evalAggregationRule(
     rule: AggregationRule<T>,
-    relation: LogicalIROp<T>,
-): LogicalIROp<T> {
+    relation: RelationalIROp<T>,
+): RelationalIROp<T> {
   // 1. Negate the relation if the rule is negated.
   // 2. Perform the aggregation.
   val negated = if (rule.clause.negated) relation.negated() else relation
@@ -119,7 +120,7 @@ private fun <T> Context<T>.evalAggregationRule(
   val same = rule.aggregate.same.mapTo(mutableSetOf()) { Index(rule.clause.atoms.indexOf(it)) }
   val indices =
       rule.aggregate.columns.mapTo(mutableSetOf()) { Index(rule.clause.atoms.indexOf(it)) }
-  return LogicalIROp.Aggregate(
+  return RelationalIROp.Aggregate(
       relation = negated,
       projection = projection,
       same = same,
@@ -145,12 +146,12 @@ private fun <T> Context<T>.evalAggregationRule(
  */
 private fun <T> Context<T>.evalRuleIncremental(
     rule: Rule<T>,
-    relations: List<LogicalIROp<T>>,
-    incremental: List<LogicalIROp<T>>,
-): LogicalIROp<T> {
+    relations: List<RelationalIROp<T>>,
+    incremental: List<RelationalIROp<T>>,
+): RelationalIROp<T> {
   require(rule.body.size == relations.size) { "Not the same number of relations and clauses." }
   require(rule.body.size == incremental.size) { "Not the same number of relations and clauses." }
-  var result: LogicalIROp<T> = Empty(rule.head.arity)
+  var result: RelationalIROp<T> = Empty(rule.head.arity)
   for (i in 0 until rule.body.size) {
     val args = List(rule.body.size) { if (it == i) incremental[it] else relations[it] }
     result = Union(result, evalRule(rule, args))
@@ -160,27 +161,30 @@ private fun <T> Context<T>.evalRuleIncremental(
 
 /**
  * [eval] takes a [PredicateWithArity], and evaluates it against the [RulesDatabase] and the base
- * and derived [FactsDatabase], returning the values that could be derived as a new [Relation]. In
- * general, the intersection of the base and derived [FactsDatabase] is empty, but this is not
- * enforced.
+ * and derived [Database], returning the values that could be derived as a new [Relation]. In
+ * general, the intersection of the base and derived [Database] is empty, but this is not enforced.
  *
  * @param predicate the [PredicateWithArity] to evaluate.
  * @param idb the [RulesDatabase] to evaluate the rule against.
- * @param base the base [FactsDatabase] to evaluate the rule against.
- * @param derived the derived [FactsDatabase] to evaluate the rule against.
- * @return the [Relation] that could be derived from the [RulesDatabase] and the [FactsDatabase].
+ * @param base the base [Database] to evaluate the rule against.
+ * @param derived the derived [Database] to evaluate the rule against.
+ * @return the [Relation] that could be derived from the [RulesDatabase] and the [Database].
  */
 private fun <T> Context<T>.eval(
     predicate: PredicateWithArity,
     idb: RulesDatabase<T>,
-    base: FactsDatabase<T>,
-    derived: FactsDatabase<T>,
-): LogicalIROp<T> {
+    base: Database,
+    derived: Database,
+): RelationalIROp<T> {
   val rules = idb[predicate]
-  var result: LogicalIROp<T> = Empty(predicate.arity)
-  val facts = base + derived
+  var result: RelationalIROp<T> = Empty(predicate.arity)
   for (rule in rules) {
-    val list = rule.body.map { Scan(facts[PredicateWithArity(it.predicate, it.arity)]) }
+    val list =
+        rule.body.map {
+          val baseScan = Scan<T>(base, PredicateWithArity(it.predicate, it.arity))
+          val derivedScan = Scan<T>(derived, PredicateWithArity(it.predicate, it.arity))
+          Union(baseScan, derivedScan)
+        }
     result = Union(result, evalRule(rule, list))
   }
   return Distinct(result)
@@ -188,74 +192,105 @@ private fun <T> Context<T>.eval(
 
 /**
  * [evalIncremental] takes one [PredicateWithArity], and evaluates it against the [RulesDatabase],
- * base [FactsDatabase], and delta [FactsDatabase], returning the values that could be derived as a
- * new [Relation].
+ * base [Database], and delta [Database], returning the values that could be derived as a new
+ * [Relation].
  *
  * @param predicate the [PredicateWithArity] to evaluate.
  * @param idb the [RulesDatabase] to evaluate the rule against.
- * @param base the base [FactsDatabase] to evaluate the rule against.
- * @param derived the derived [FactsDatabase] to evaluate the rule against.
- * @param delta the delta [FactsDatabase] to evaluate the rule against.
+ * @param base the base [Database] to evaluate the rule against.
+ * @param derived the derived [Database] to evaluate the rule against.
+ * @param delta the delta [Database] to evaluate the rule against.
  */
 private fun <T> Context<T>.evalIncremental(
     predicate: PredicateWithArity,
     idb: RulesDatabase<T>,
-    base: FactsDatabase<T>,
-    derived: FactsDatabase<T>,
-    delta: FactsDatabase<T>,
-): LogicalIROp<T> {
+    base: Database,
+    derived: Database,
+    delta: Database,
+): RelationalIROp<T> {
   val rules = idb[predicate]
-  var result: LogicalIROp<T> = Empty(predicate.arity)
-  val factsBase = base + derived
-  val factsDelta = base + delta // Negation needs base facts to be present in the delta.
+  var result: RelationalIROp<T> = Empty(predicate.arity)
   for (rule in rules) {
-    val baseList = rule.body.map { Scan(factsBase[PredicateWithArity(it.predicate, it.arity)]) }
-    val deltaList = rule.body.map { Scan(factsDelta[PredicateWithArity(it.predicate, it.arity)]) }
+    val baseList =
+        rule.body.map {
+          val baseScan = Scan<T>(base, PredicateWithArity(it.predicate, it.arity))
+          val derivedScan = Scan<T>(derived, PredicateWithArity(it.predicate, it.arity))
+          Union(baseScan, derivedScan)
+        }
+    val deltaList =
+        rule.body.map {
+          // Negation needs base facts to be present in the delta.
+          val baseScan = Scan<T>(base, PredicateWithArity(it.predicate, it.arity))
+          val deltaScan = Scan<T>(delta, PredicateWithArity(it.predicate, it.arity))
+          Union(baseScan, deltaScan)
+        }
     result = Union(result, evalRuleIncremental(rule, baseList, deltaList))
   }
   return Distinct(result)
 }
 
-/** [naiveEval] takes an [RulesDatabase] and a base [FactsDatabase], and derives new facts. */
+/** [naiveEval] takes an [RulesDatabase] and a base [Database], and derives new facts. */
 internal fun <T> Context<T>.naiveEval(
     idb: RulesDatabase<T>,
-    base: FactsDatabase<T>,
-): FactsDatabase<T> {
-  val rels = MutableFactsDatabase.empty<T>()
-  val copy = MutableFactsDatabase.empty<T>()
-
-  do {
-    for (predicate in idb) copy[predicate] = rels[predicate]
-    for (predicate in idb) rels[predicate] = eval(predicate, idb, base, rels).compute()
-  } while (rels != copy)
-
-  return rels
+    base: Database,
+    result: Database,
+): IROp<T> {
+  val copy = Database("Copy")
+  return DoWhileNotEqual(
+      operation =
+          Sequence(
+              buildList {
+                for (predicate in idb) {
+                  add(Store(copy, predicate, Scan(result, predicate)))
+                }
+                for (predicate in idb) {
+                  val res = eval(predicate, idb, base, result)
+                  add(Store(result, predicate, res))
+                }
+              },
+          ),
+      first = result,
+      second = copy,
+  )
 }
 
-/** [semiNaiveEval] takes an [RulesDatabase] and a base [FactsDatabase], and derives new facts. */
+/** [semiNaiveEval] takes an [RulesDatabase] and a base [Database], and derives new facts. */
 internal fun <T> Context<T>.semiNaiveEval(
     idb: RulesDatabase<T>,
-    edb: FactsDatabase<T>,
-): FactsDatabase<T> {
-  val rels = MutableFactsDatabase.empty<T>()
-  val delta = MutableFactsDatabase.empty<T>()
-  val copy = MutableFactsDatabase.empty<T>()
+    base: Database,
+    result: Database,
+): IROp<T> {
+  val delta = Database("Delta")
+  val copy = Database("Copy")
 
-  for (predicate in idb) {
-    val res = eval(predicate, idb, edb, MutableFactsDatabase.empty())
-    rels[predicate] = res.compute()
-    delta[predicate] = res.compute()
-  }
+  return Sequence(
+      buildList {
+        for (predicate in idb) {
+          val res = eval(predicate, idb, base, Database.Empty)
+          add(Store(result, predicate, res))
+          add(Store(delta, predicate, res))
+        }
 
-  do {
-    for (p in idb) copy[p] = delta[p]
-    for (p in idb) {
-      val facts = evalIncremental(p, idb, edb, rels, copy).compute()
-      val existing = rels[p]
-      delta[p] = facts - existing
-    }
-    rels += delta
-  } while (delta.isNotEmpty())
-
-  return rels
+        add(
+            DoWhileNotEmpty(
+                operation =
+                    Sequence(
+                        buildList {
+                          for (p in idb) add(Store(copy, p, Scan(delta, p)))
+                          for (p in idb) {
+                            val facts = evalIncremental(p, idb, base, result, copy)
+                            val existing = Scan<T>(result, p)
+                            add(Store(delta, p, Minus(facts, existing)))
+                          }
+                          for (p in idb) {
+                            val current = Scan<T>(result, p)
+                            val new = Scan<T>(delta, p)
+                            add(Store(result, p, Union(current, new)))
+                          }
+                        }),
+                database = delta,
+            ),
+        )
+      },
+  )
 }

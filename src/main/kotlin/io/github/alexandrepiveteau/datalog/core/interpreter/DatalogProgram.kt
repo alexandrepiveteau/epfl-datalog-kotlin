@@ -1,13 +1,17 @@
 package io.github.alexandrepiveteau.datalog.core.interpreter
 
 import io.github.alexandrepiveteau.datalog.core.Algorithm
+import io.github.alexandrepiveteau.datalog.core.Domain
 import io.github.alexandrepiveteau.datalog.core.Program
 import io.github.alexandrepiveteau.datalog.core.interpreter.algebra.forEach
 import io.github.alexandrepiveteau.datalog.core.interpreter.database.FactsDatabase
 import io.github.alexandrepiveteau.datalog.core.interpreter.database.PredicateWithArity
 import io.github.alexandrepiveteau.datalog.core.interpreter.database.RulesDatabase
+import io.github.alexandrepiveteau.datalog.core.interpreter.ir.Database.Companion.Base
+import io.github.alexandrepiveteau.datalog.core.interpreter.ir.Database.Companion.Result
+import io.github.alexandrepiveteau.datalog.core.interpreter.ir.StorageManager
+import io.github.alexandrepiveteau.datalog.core.interpreter.ir.compute
 import io.github.alexandrepiveteau.datalog.core.rule.*
-import io.github.alexandrepiveteau.datalog.core.Domain
 
 private fun <T> List<Atom<T>>.constants(): Sequence<Value<T>> {
   return sequence {
@@ -48,9 +52,9 @@ private fun <T> constants(rules: RulesDatabase<T>, facts: FactsDatabase<T>): Seq
  * @param algorithm the [Algorithm] used to evaluate each stratum.
  */
 internal class DatalogProgram<out T>(
-  private val domain: Domain<T>,
-  private val rules: MutableSet<Rule<T>>,
-  private val algorithm: Algorithm,
+    private val domain: Domain<T>,
+    private val rules: MutableSet<Rule<T>>,
+    private val algorithm: Algorithm,
 ) : Program<T> {
 
   private fun context(idb: RulesDatabase<T>, edb: FactsDatabase<T>): Context<T> {
@@ -61,7 +65,10 @@ internal class DatalogProgram<out T>(
     val (idb, edb) = partition(rules)
     val target = PredicateWithArity(predicate, arity)
     val context = context(idb, edb)
-    val result = stratifiedEval(target, idb, edb) { i, e -> algorithm.evaluate(context, i, e) }
+    val storage = StorageManager<T>().apply { database(Base) += edb }
+    stratifiedEval(target, idb, Base, Result) { i, e, r -> algorithm.evaluate(context, i, e, r) }
+        .apply { compute(storage) }
+    val result = storage.database(Base)
     return result[target].tuples
   }
 }

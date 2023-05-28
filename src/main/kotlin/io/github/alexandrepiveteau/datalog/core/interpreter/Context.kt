@@ -1,8 +1,8 @@
 package io.github.alexandrepiveteau.datalog.core.interpreter
 
 import io.github.alexandrepiveteau.datalog.core.Domain
-import io.github.alexandrepiveteau.datalog.core.interpreter.ir.LogicalIROp
-import io.github.alexandrepiveteau.datalog.core.interpreter.ir.LogicalIROp.*
+import io.github.alexandrepiveteau.datalog.core.interpreter.ir.IROp.RelationalIROp
+import io.github.alexandrepiveteau.datalog.core.interpreter.ir.IROp.RelationalIROp.*
 import io.github.alexandrepiveteau.datalog.core.rule.Value
 
 /**
@@ -16,6 +16,7 @@ internal data class Context<T>(
     val domain: Domain<T>,
 ) {
 
-  /** Negates the [LogicalIROp] in this [Context]. */
-  internal fun LogicalIROp<T>.negated(): LogicalIROp<T> = Minus(Domain(arity, atoms.toSet()), this)
+  /** Negates the [RelationalIROp] in this [Context]. */
+  internal fun RelationalIROp<T>.negated(): RelationalIROp<T> =
+      Minus(Domain(arity, atoms.toSet()), this)
 }

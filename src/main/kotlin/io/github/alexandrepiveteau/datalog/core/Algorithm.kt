@@ -3,6 +3,8 @@ package io.github.alexandrepiveteau.datalog.core
 import io.github.alexandrepiveteau.datalog.core.interpreter.Context
 import io.github.alexandrepiveteau.datalog.core.interpreter.database.FactsDatabase
 import io.github.alexandrepiveteau.datalog.core.interpreter.database.RulesDatabase
+import io.github.alexandrepiveteau.datalog.core.interpreter.ir.Database
+import io.github.alexandrepiveteau.datalog.core.interpreter.ir.IROp
 import io.github.alexandrepiveteau.datalog.core.interpreter.naiveEval
 import io.github.alexandrepiveteau.datalog.core.interpreter.semiNaiveEval
 
@@ -14,8 +16,9 @@ enum class Algorithm {
     override fun <T> evaluate(
         context: Context<T>,
         rules: RulesDatabase<T>,
-        facts: FactsDatabase<T>
-    ) = with(context) { naiveEval(rules, facts) }
+        base: Database,
+        result: Database,
+    ) = with(context) { naiveEval(rules, base, result) }
   },
 
   /** Semi-naive evaluation. */
@@ -23,8 +26,9 @@ enum class Algorithm {
     override fun <T> evaluate(
         context: Context<T>,
         rules: RulesDatabase<T>,
-        facts: FactsDatabase<T>
-    ) = with(context) { semiNaiveEval(rules, facts) }
+        base: Database,
+        result: Database,
+    ) = with(context) { semiNaiveEval(rules, base, result) }
   };
 
   /**
@@ -42,6 +46,7 @@ enum class Algorithm {
   internal abstract fun <T> evaluate(
       context: Context<T>,
       rules: RulesDatabase<T>,
-      facts: FactsDatabase<T>,
-  ): FactsDatabase<T>
+      base: Database,
+      result: Database,
+  ): IROp<T>
 }

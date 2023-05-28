@@ -4,6 +4,9 @@ import io.github.alexandrepiveteau.datalog.core.NoStratificationException
 import io.github.alexandrepiveteau.datalog.core.interpreter.database.FactsDatabase
 import io.github.alexandrepiveteau.datalog.core.interpreter.database.PredicateWithArity
 import io.github.alexandrepiveteau.datalog.core.interpreter.database.RulesDatabase
+import io.github.alexandrepiveteau.datalog.core.interpreter.ir.Database
+import io.github.alexandrepiveteau.datalog.core.interpreter.ir.IROp
+import io.github.alexandrepiveteau.datalog.core.interpreter.ir.IROp.*
 import io.github.alexandrepiveteau.datalog.core.rule.AggregationRule
 import io.github.alexandrepiveteau.datalog.core.rule.CombinationRule
 import io.github.alexandrepiveteau.datalog.core.rule.Rule
@@ -137,17 +140,22 @@ private fun <T> List<Set<PredicateWithArity>>.hasCycle(rules: RulesDatabase<T>):
 internal fun <T> stratifiedEval(
     target: PredicateWithArity,
     idb: RulesDatabase<T>,
-    edb: FactsDatabase<T>,
-    evalStrata: (RulesDatabase<T>, FactsDatabase<T>) -> FactsDatabase<T>,
-): FactsDatabase<T> {
+    base: Database,
+    result: Database,
+    evalStrata: (RulesDatabase<T>, Database, Database) -> IROp<T>,
+): IROp<T> {
   val dependencies = idb.dependencies(target)
   val order = stratify(dependencies, idb)
   if (order.hasCycle(idb)) throw NoStratificationException()
 
-  var result = edb
-  for (stratum in order) {
-    val rules = idb.filter(stratum)
-    result += evalStrata(rules, result)
-  }
-  return result
+  return Sequence(
+      buildList {
+        for (index in order.indices) {
+          val stratum = order[index]
+          val rules = idb.filter(stratum)
+          add(evalStrata(rules, base, result))
+          add(MergeAndClear)
+        }
+      },
+  )
 }
