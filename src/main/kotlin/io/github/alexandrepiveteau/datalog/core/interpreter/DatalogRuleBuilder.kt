@@ -1,6 +1,5 @@
 package io.github.alexandrepiveteau.datalog.core.interpreter
 
-import io.github.alexandrepiveteau.datalog.core.NotGroundedException
 import io.github.alexandrepiveteau.datalog.core.RuleBuilder
 import io.github.alexandrepiveteau.datalog.core.rule.*
 
@@ -37,30 +36,6 @@ internal class DatalogRuleBuilder<T> : RuleBuilder<T> {
     aggregates.add(Aggregate(operator, same, columns, result))
   }
 
-  // TODO : Move these checks to the DatalogProgramBuilder rather than having them in the
-  //        DatalogRuleBuilder.
-  private fun Rule<T>.limited(): Set<Variable> {
-    val variables = mutableSetOf<Variable>()
-    body
-        .asSequence()
-        .filter { !it.negated }
-        .forEach { clause -> variables.addAll(clause.atoms.filterIsInstance<Variable>()) }
-    when (this) {
-      is CombinationRule -> Unit
-      is AggregationRule -> variables.add(this.aggregate.result)
-    }
-    return variables
-  }
-
-  private fun requireGrounding(rule: Rule<T>) {
-    val head = rule.head.atoms.filterIsInstance<Variable>()
-    val body = rule.body.flatMap { it.atoms }.filterIsInstance<Variable>()
-    val limited = rule.limited()
-    for (variable in head + body) {
-      if (variable !in limited) throw NotGroundedException()
-    }
-  }
-
   /**
    * Returns the [Rule] that has been built using the [predicate] and [aggregate] functions.
    * Depending on the clauses, the resulting rule might be an aggregate rule, or a regular predicate
@@ -78,7 +53,6 @@ internal class DatalogRuleBuilder<T> : RuleBuilder<T> {
         } else {
           toAggregationRule(predicate, atoms)
         }
-    requireGrounding(rule)
     return rule
   }
 
