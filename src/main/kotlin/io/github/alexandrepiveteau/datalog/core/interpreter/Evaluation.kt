@@ -4,7 +4,6 @@ import io.github.alexandrepiveteau.datalog.core.interpreter.algebra.AggregationC
 import io.github.alexandrepiveteau.datalog.core.interpreter.algebra.Column
 import io.github.alexandrepiveteau.datalog.core.interpreter.algebra.Column.Constant
 import io.github.alexandrepiveteau.datalog.core.interpreter.algebra.Column.Index
-import io.github.alexandrepiveteau.datalog.core.interpreter.algebra.Relation
 import io.github.alexandrepiveteau.datalog.core.interpreter.database.PredicateWithArity
 import io.github.alexandrepiveteau.datalog.core.interpreter.database.RulesDatabase
 import io.github.alexandrepiveteau.datalog.core.interpreter.ir.Database
@@ -66,13 +65,13 @@ private fun <T> selection(rule: List<Atom<T>>): Set<Set<Column<T>>> {
 }
 
 /**
- * [evalRule] takes a [Rule] and a list of [Relation]s, and evaluates it against the list of
- * [Relation]s, returning the values that could be derived as a new [Relation].
+ * [evalRule] takes a [Rule] and a list of relations, and evaluates it against the list of
+ * [RelationalIROp]s, returning the values that could be derived as a new [RelationalIROp].
  *
- * The rule must have exactly one clause for each [Relation].
+ * The rule must have exactly one clause for each [RelationalIROp].
  *
  * @param rule the [Rule] to evaluate.
- * @param relations the [Relation]s to evaluate the rule against.
+ * @param relations the [RelationalIROp]s to evaluate the rule against.
  */
 private fun <T> Context<T>.evalRule(
     rule: Rule<T>,
@@ -131,9 +130,9 @@ private fun <T> Context<T>.evalAggregationRule(
 }
 
 /**
- * [evalRuleIncremental] takes a [CombinationRule] and two sets of [Relation]s, and evaluates them
- * against the list of [relations] and [incremental] relations, returning the values that could be
- * derived as a new [Relation].
+ * [evalRuleIncremental] takes a [CombinationRule] and two sets of [RelationalIROp]s, and evaluates
+ * them against the list of [relations] and [incremental] relations, returning the values that could
+ * be derived as a new [RelationalIROp].
  *
  * For each [incremental] relation, we evaluate the rule with all the [relations] relations and one
  * [incremental] relation. This is done by replacing the [incremental] relation with the [relations]
@@ -141,8 +140,8 @@ private fun <T> Context<T>.evalAggregationRule(
  * values.
  *
  * @param rule the [CombinationRule] to evaluate.
- * @param relations the base [Relation]s to evaluate the rule against.
- * @param incremental the delta [Relation]s to evaluate the rule against.
+ * @param relations the base [RelationalIROp]s to evaluate the rule against.
+ * @param incremental the delta [RelationalIROp]s to evaluate the rule against.
  */
 private fun <T> Context<T>.evalRuleIncremental(
     rule: Rule<T>,
@@ -161,14 +160,14 @@ private fun <T> Context<T>.evalRuleIncremental(
 
 /**
  * [eval] takes a [PredicateWithArity], and evaluates it against the [RulesDatabase] and the base
- * and derived [Database], returning the values that could be derived as a new [Relation]. In
+ * and derived [Database], returning the values that could be derived as a new [RelationalIROp]. In
  * general, the intersection of the base and derived [Database] is empty, but this is not enforced.
  *
  * @param predicate the [PredicateWithArity] to evaluate.
  * @param idb the [RulesDatabase] to evaluate the rule against.
  * @param base the base [Database] to evaluate the rule against.
  * @param derived the derived [Database] to evaluate the rule against.
- * @return the [Relation] that could be derived from the [RulesDatabase] and the [Database].
+ * @return the [RelationalIROp] that could be derived from the [RulesDatabase] and the [Database].
  */
 private fun <T> Context<T>.eval(
     predicate: PredicateWithArity,
@@ -193,13 +192,14 @@ private fun <T> Context<T>.eval(
 /**
  * [evalIncremental] takes one [PredicateWithArity], and evaluates it against the [RulesDatabase],
  * base [Database], and delta [Database], returning the values that could be derived as a new
- * [Relation].
+ * [RelationalIROp].
  *
  * @param predicate the [PredicateWithArity] to evaluate.
  * @param idb the [RulesDatabase] to evaluate the rule against.
  * @param base the base [Database] to evaluate the rule against.
  * @param derived the derived [Database] to evaluate the rule against.
  * @param delta the delta [Database] to evaluate the rule against.
+ * @return the [RelationalIROp] that could be derived from the [RulesDatabase] and the [Database].
  */
 private fun <T> Context<T>.evalIncremental(
     predicate: PredicateWithArity,
@@ -229,7 +229,10 @@ private fun <T> Context<T>.evalIncremental(
   return Distinct(result)
 }
 
-/** [naiveEval] takes an [RulesDatabase] and a base [Database], and derives new facts. */
+/**
+ * [naiveEval] takes an [RulesDatabase] and a base [Database], and derives new facts to the [result]
+ * [Database].
+ */
 internal fun <T> Context<T>.naiveEval(
     idb: RulesDatabase<T>,
     base: Database,
@@ -254,7 +257,10 @@ internal fun <T> Context<T>.naiveEval(
   )
 }
 
-/** [semiNaiveEval] takes an [RulesDatabase] and a base [Database], and derives new facts. */
+/**
+ * [semiNaiveEval] takes an [RulesDatabase] and a base [Database], and derives new facts to the
+ * [result] [Database].
+ */
 internal fun <T> Context<T>.semiNaiveEval(
     idb: RulesDatabase<T>,
     base: Database,

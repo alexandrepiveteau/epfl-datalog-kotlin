@@ -1,7 +1,6 @@
 package io.github.alexandrepiveteau.datalog.core.interpreter
 
 import io.github.alexandrepiveteau.datalog.core.NoStratificationException
-import io.github.alexandrepiveteau.datalog.core.interpreter.database.FactsDatabase
 import io.github.alexandrepiveteau.datalog.core.interpreter.database.PredicateWithArity
 import io.github.alexandrepiveteau.datalog.core.interpreter.database.RulesDatabase
 import io.github.alexandrepiveteau.datalog.core.interpreter.ir.Database
@@ -129,13 +128,14 @@ private fun <T> List<Set<PredicateWithArity>>.hasCycle(rules: RulesDatabase<T>):
 
 /**
  * [stratifiedEval] performs stratified evaluation of the rules, and returns the resulting
- * [FactsDatabase].
+ * [RelationalIROp].
  *
  * @param target the target [PredicateWithArity] to evaluate.
  * @param idb the [RulesDatabase] to evaluate.
- * @param edb the [FactsDatabase] to evaluate.
+ * @param base the [Database] which contains the base facts.
+ * @param result the [Database] which will contain the resulting facts.
  * @param evalStrata the evaluator to use for each stratum.
- * @return the resulting [FactsDatabase].
+ * @return the resulting [IROp].
  */
 internal fun <T> stratifiedEval(
     target: PredicateWithArity,
